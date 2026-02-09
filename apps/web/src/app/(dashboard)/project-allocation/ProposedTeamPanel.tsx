@@ -78,7 +78,7 @@ export default function ProposedTeamPanel({
                               {rec.employeeName}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {role.roleName}
+                              {rec.currentRole || role.roleName}
                             </p>
                           </div>
                         </div>

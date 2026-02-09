@@ -37,6 +37,7 @@ export interface AllocationProposal {
     recommendations: {
       employeeId: string;
       employeeName: string;
+      currentRole: string; // Added to display real role
       confidence: number;
       reason: string;
     }[];

@@ -2,6 +2,24 @@ import { ProjectDemand, AllocationProposal, Employee } from '@repo/types';
 import { callOllama } from '../clients/ollamaClient';
 import { extractAllocationIntent } from './intentAgent';
 
+const ROLE_SYNONYMS: Record<string, string[]> = {
+  backend: ['backend', 'server', 'api', 'node', 'java', 'go', 'python'],
+  frontend: ['frontend', 'ui', 'react', 'angular', 'vue', 'web'],
+  devops: ['devops', 'infra', 'sre', 'cloud', 'aws', 'platform'],
+  mobile: ['mobile', 'ios', 'android', 'react native', 'flutter'],
+  qa: ['qa', 'testing', 'automation', 'sdet'],
+  design: ['design', 'ux', 'ui', 'product designer'],
+  manager: ['manager', 'lead', 'em', 'director'],
+};
+
+// Explicit State Container
+interface AgentState {
+  demand: ProjectDemand;
+  employees: Employee[];
+  currentProposal: AllocationProposal | null;
+  history: { role: 'user' | 'assistant'; content: string }[];
+}
+
 // Helper to resolve skills from role if missing
 function resolvePrimarySkills(
   intent: any,
@@ -13,9 +31,12 @@ function resolvePrimarySkills(
 
   const mapRoleToSkills = (r: string) => {
     const roleLower = r.toLowerCase();
-    if (roleLower.includes('backend')) return ['Node.js', 'API'];
-    if (roleLower.includes('frontend')) return ['React', 'TypeScript'];
-    if (roleLower.includes('devops')) return ['Docker', 'Kubernetes'];
+    if (ROLE_SYNONYMS.backend.some((s) => roleLower.includes(s)))
+      return ['Node.js', 'API'];
+    if (ROLE_SYNONYMS.frontend.some((s) => roleLower.includes(s)))
+      return ['React', 'TypeScript'];
+    if (ROLE_SYNONYMS.devops.some((s) => roleLower.includes(s)))
+      return ['Docker', 'Kubernetes'];
     return [];
   };
 
@@ -29,204 +50,208 @@ function resolvePrimarySkills(
   return originalDemand.primarySkills;
 }
 
-// Helper to pre-filter candidates ensuring AI only sees viable options
-function filterCandidates(
-  demand: ProjectDemand,
+// 1️⃣ Resolve Candidates: Deterministic Filtering with Synonyms
+function resolveCandidates(
+  roleName: string,
+  requiredSkills: string[],
   employees: Employee[],
-  requiredRole?: string | string[] | null,
 ): Employee[] {
   return employees.filter((e) => {
     // 1. Availability constraint
     if (e.availabilityPercent < 20) return false;
 
-    // 2. Status constraint (explicit 'ON_LEAVE' or implicit via availability)
+    // 2. Status constraint
     if ((e.status as string) === 'ON_LEAVE') return false;
 
-    // 3. Role Constraint (Explicit Intent)
-    if (requiredRole) {
-      const eRole = e.role.toLowerCase();
+    // 3. Role Constraint (STRICT but SYNONYM-AWARE)
+    const eRole = e.role.toLowerCase();
+    const rLower = roleName.toLowerCase();
 
-      const checkMatch = (req: string) => {
-        const rLower = req.toLowerCase();
-        // Fuzzy match: allowing "Backend Engineer" to match "Backend Developer" via common "backend"
-        // But need to be careful not to match "Senior" with "Junior" if using raw includes.
-        // Better: check if key terms match. for now, simple includes.
-        return eRole.includes(rLower) || rLower.includes(eRole);
-      };
+    // Check direct inclusion first
+    let match = eRole.includes(rLower);
 
-      if (Array.isArray(requiredRole)) {
-        if (!requiredRole.some(checkMatch)) return false;
-      } else {
-        if (!checkMatch(requiredRole)) return false;
+    // If no direct match, check synonyms
+    if (!match) {
+      // Find which canonical group the requested role belongs to
+      const group = Object.values(ROLE_SYNONYMS).find((synonyms) =>
+        synonyms.some((s) => rLower.includes(s)),
+      );
+      if (group) {
+        // If requested role is in a group, check if employee role is also in that group
+        match = group.some((s) => eRole.includes(s));
       }
     }
 
+    if (!match) return false;
+
     // 4. Skill constraint (Must match at least one primary skill)
-    if (!demand.primarySkills || demand.primarySkills.length === 0) return true;
+    if (!requiredSkills || requiredSkills.length === 0) return true;
 
-    const employeeSkills = e.skills.map((s) => s.name.toLowerCase());
-    const requiredSkills = demand.primarySkills.map((s) => s.toLowerCase());
+    const employeeSkills = new Set(e.skills.map((s) => s.name.toLowerCase()));
+    const reqSkillsLower = requiredSkills.map((s) => s.toLowerCase());
 
-    const hasSkillMatch = requiredSkills.some((req) =>
-      employeeSkills.includes(req),
-    );
-
-    return hasSkillMatch;
+    return reqSkillsLower.some((req) => employeeSkills.has(req));
   });
+}
+
+// 2️⃣ Rank Candidates with AI (Validated)
+async function rankCandidatesWithAI(
+  roleName: string,
+  candidates: Employee[],
+): Promise<{ employeeId: string; confidence: number; reason: string }[]> {
+  if (candidates.length === 0) return [];
+
+  const candidateContext = candidates
+    .map(
+      (e) =>
+        `- ${e.name} (id: ${e.id}): ${e.role}, ${e.experienceLevel}, Skills: ${e.skills.map((s) => s.name).join(', ')}, Availability: ${e.availabilityPercent}%`,
+    )
+    .join('\n');
+
+  const prompt = `
+You are a senior technical recruiter ranking candidates for the role: ${roleName}.
+
+Candidates:
+${candidateContext}
+
+Return ONLY valid JSON:
+{
+  "rankedCandidates": [
+    { "employeeId": string, "confidence": number, "reason": string }
+  ]
+}
+
+Rules:
+- Rank candidates best suited for ${roleName}.
+- Confidence 0-1 (1 = perfect match).
+- Reason must be short and specific.
+- Return ALL candidates provided in the list.
+`;
+
+  try {
+    const raw = await callOllama(prompt);
+    console.log('[DEBUG] AI Ranking RAW:', raw);
+
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
+    if (start === -1 || end === -1) throw new Error('No JSON found');
+
+    const jsonStr = raw.substring(start, end + 1);
+
+    // Attempt basic fix for common trailing comma issues
+    const fixedJsonStr = jsonStr.replace(/,\s*]/g, ']').replace(/,\s*}/g, '}');
+
+    let parsed;
+    try {
+      parsed = JSON.parse(fixedJsonStr);
+    } catch (parseError) {
+      console.warn(
+        'JSON Parse failed, attempting aggressive repair',
+        parseError,
+      );
+      // Aggressive repair: if missing closing braces/brackets
+      try {
+        parsed = JSON.parse(fixedJsonStr + ']}');
+      } catch (error_) {
+        try {
+          parsed = JSON.parse(fixedJsonStr + '}');
+        } catch (error__) {
+          throw parseError; // Give up
+        }
+      }
+    }
+
+    if (!Array.isArray(parsed.rankedCandidates)) return [];
+
+    // 🛡️ Post-AI Validation
+    const seen = new Set<string>();
+    const validated = [];
+    const validIds = new Set(candidates.map((c) => c.id));
+
+    for (const r of parsed.rankedCandidates) {
+      if (
+        validIds.has(r.employeeId) && // Must be a real candidate we sent
+        !seen.has(r.employeeId) // Must not be a duplicate
+      ) {
+        seen.add(r.employeeId);
+        validated.push(r);
+      }
+    }
+
+    return validated;
+  } catch (error) {
+    console.error('Failed to rank candidates:', error);
+    // 🔒 HARD GUARANTEE: preserve candidate identity + order
+    return candidates.map((c, index) => ({
+      employeeId: c.id,
+      confidence: 0.5 - index * 0.01, // deterministic tie-break
+      reason: 'Default ranking due to AI parsing failure.',
+    }));
+  }
 }
 
 export async function generateAllocation(
   demand: ProjectDemand,
   employees: Employee[],
 ): Promise<AllocationProposal> {
-  // 🔍 Debugging Headcount
-  console.log('[DEBUG] generateAllocation called');
-  console.log(
-    `[DEBUG] Demand Roles: ${JSON.stringify(demand.roles.map((r) => ({ name: r.roleName, count: r.headcount })))}`,
-  );
+  console.log('[DEBUG] generateAllocation (Refactored) called');
 
-  // 🔍 Pre-filter candidates before AI step
-  const filteredEmployees = filterCandidates(demand, employees);
+  const roleAllocations = [];
 
-  // Fallback: NONE. If filtered list is empty, AI gets empty context.
-  // This prevents hallucination or suggesting wrong roles.
-  const candidatesToConsider = filteredEmployees;
+  for (const roleDemand of demand.roles) {
+    // 1️⃣ Resolve
+    // Fix type mismatch: ensure skills are strings
+    const rawReqSkills =
+      roleDemand.requiredSkills || demand.primarySkills || [];
+    const safeReqSkills = rawReqSkills.map((s: any) =>
+      typeof s === 'string' ? s : s.name,
+    );
 
-  const employeeContext = candidatesToConsider
-    .map(
-      (e) =>
-        `- ${e.name} (id: ${e.id}): ${e.role}, ${e.experienceLevel}, Skills: ${e.skills.map((s) => s.name).join(', ')}, Availability: ${e.availabilityPercent}%, Status: ${e.status}`,
-    )
-    .join('\n');
+    const candidates = resolveCandidates(
+      roleDemand.roleName,
+      safeReqSkills,
+      employees,
+    );
 
-  const prompt = `
-You are a senior enterprise resource manager.
+    // 2️⃣ Rank
+    let ranked: { employeeId: string; confidence: number; reason: string }[] =
+      [];
+    if (candidates.length > 0) {
+      ranked = await rankCandidatesWithAI(roleDemand.roleName, candidates);
+    }
 
-Your task is to propose employee allocations for the following project demand.
-
-Rules:
-- Suggest realistic candidates from the provided employee list
-- Assign a confidence score between 0 and 1 using this framework:
-  - Skill match: up to 0.5
-  - Availability: up to 0.3
-  - Experience match: up to 0.2
-- Provide a short reason explaining the score breakdown
-- Output ONLY valid JSON
-- Do NOT include explanations outside JSON
-- Do NOT use dynamic keys
-- Do NOT wrap output under project name
-
-JSON schema:
-{
-  "generatedAt": string,
-  "roleAllocations": [
-    {
-      "roleName": string,
-      "recommendations": [
-        {
-          "employeeId": string,
-          "employeeName": string,
-          "confidence": number,
-          "reason": string
+    // 3️⃣ Build Proposal (Slice to headcount)
+    // Map ranked results back to full recommendation objects
+    const finalRecommendations = ranked
+      .map((r) => {
+        const emp = candidates.find((c) => c.id === r.employeeId);
+        if (!emp) {
+          console.warn(
+            `[WARN] Ranked employee ${r.employeeId} not found in candidates`,
+          );
+          return null;
         }
-      ]
-    }
-  ]
-}
+        return {
+          employeeId: emp.id,
+          employeeName: emp.name,
+          currentRole: emp.role,
+          confidence: r.confidence,
+          reason: r.reason,
+        };
+      })
+      .filter((r) => r !== null)
+      .slice(0, roleDemand.headcount); // Strict headcount enforcement
 
-Project Demand:
-${JSON.stringify(demand, null, 2)}
-
-Available Employees:
-${employeeContext}
-`;
-
-  const raw = await callOllama(prompt);
-  console.log('[DEBUG] AI RAW:', raw);
-
-  let parsed: any;
-
-  try {
-    // Robust extraction: Find first '{' and last '}'
-    const start = raw.indexOf('{');
-    const end = raw.lastIndexOf('}');
-
-    if (start !== -1 && end !== -1) {
-      const jsonStr = raw.substring(start, end + 1);
-      parsed = JSON.parse(jsonStr);
-    } else {
-      throw new Error('No JSON object found in response');
-    }
-  } catch (e: any) {
-    console.error('Failed to parse AI response:', raw);
-    throw new Error(`Invalid AI JSON output: ${e.message}`);
+    roleAllocations.push({
+      roleName: roleDemand.roleName,
+      recommendations: finalRecommendations as any,
+    });
   }
-
-  // 🔧 Normalize dynamic root key (vcrew, project name, etc.)
-  if (
-    typeof parsed === 'object' &&
-    !parsed.roleAllocations &&
-    Object.keys(parsed).length === 1
-  ) {
-    const rootKey = Object.keys(parsed)[0];
-    parsed = parsed[rootKey];
-  }
-
-  // 🔒 Final safety check
-  if (!Array.isArray(parsed.roleAllocations)) {
-    throw new Error('AI output missing roleAllocations');
-  }
-
-  console.log(`[DEBUG] AI returned ${parsed.roleAllocations.length} roles`);
-
-  // Enforce headcount limits strictly
-  const enforcedAllocations = parsed.roleAllocations
-    .map((alloc: any) => {
-      // Strategy:
-      // 1. If demand has exactly 1 role, use that headcount (Highest confidence mapping).
-      // 2. Else try to match by name.
-      // 3. Else default to 5.
-
-      let limit = 5;
-      let matchMethod = 'default';
-      let targetRoleName = alloc.roleName;
-
-      const match = demand.roles.find(
-        (r) => r.roleName.toLowerCase() === alloc.roleName.toLowerCase(),
-      );
-
-      if (demand.roles.length === 1) {
-        const singleRole = demand.roles[0];
-        limit = singleRole.headcount;
-        targetRoleName = singleRole.roleName; // FORCE CORRECT NAME
-        matchMethod = 'single-role-fallback';
-      } else if (match) {
-        limit = match.headcount;
-        targetRoleName = match.roleName; // Normalize casing
-        matchMethod = 'name-match';
-      }
-
-      console.log(
-        `[DEBUG] Role: ${alloc.roleName} -> ${targetRoleName}, Limit: ${limit} (via ${matchMethod}), Suggestions: ${alloc.recommendations.length}`,
-      );
-
-      const sliced = alloc.recommendations.slice(0, limit);
-
-      // Explicitly verify slice worked
-      console.log(`[DEBUG] Sliced count: ${sliced.length}`);
-
-      return {
-        ...alloc,
-        roleName: targetRoleName, // Apply the forced name
-        recommendations: sliced,
-      };
-    })
-    .filter((a: any) => a.recommendations.length > 0);
 
   return {
-    projectName: demand.projectName, // always controlled by system
-    generatedAt: parsed.generatedAt ?? new Date().toISOString(),
-    roleAllocations: enforcedAllocations,
+    projectName: demand.projectName,
+    generatedAt: new Date().toISOString(),
+    roleAllocations,
   };
 }
 
@@ -238,70 +263,61 @@ async function handleAddEmployees(
   originalDemand: ProjectDemand,
 ): Promise<{ proposal: AllocationProposal; message: string }> {
   try {
-    const count = intent.employeeCount || 1;
+    // Ensure structure exists
+    if (!currentProposal.roleAllocations) {
+      currentProposal.roleAllocations = [];
+    }
 
-    // FIX #1 & #2: Resolve primary skills
-    const resolvedSkills = resolvePrimarySkills(intent, originalDemand);
-    const roleNameDisplay = Array.isArray(intent.role)
-      ? intent.role.join('/')
-      : intent.role || 'Additional Resource';
+    // Determine invalid intent (no roles at all)
+    const hasRole =
+      intent.role && (!Array.isArray(intent.role) || intent.role.length > 0);
+    const hasRolesArray = intent.roles && intent.roles.length > 0;
 
-    // Create a mini-demand for the addition
-    const addDemand: ProjectDemand = {
-      ...originalDemand,
-      primarySkills: resolvedSkills || [],
-      roles: [
-        {
-          roleName: roleNameDisplay,
-          requiredSkills: [],
-          experienceLevel: intent.experienceLevel || 'MID',
-          allocationPercent: 100,
-          headcount: count,
-        },
-      ],
-    };
-
-    // FIX #3: Filter specifically for this addition with ROLE CHECK
-    const candidates = filterCandidates(addDemand, employees, intent.role);
-
-    // Exclude already allocated
-    const currentIds = new Set(
-      currentProposal.roleAllocations.flatMap((r) =>
-        r.recommendations.map((re) => re.employeeId),
-      ),
-    );
-    const availableCandidates = candidates.filter((e) => !currentIds.has(e.id));
-
-    // FIX #5: Graceful No-Candidate Handling
-    if (availableCandidates.length === 0) {
-      const roleStr = Array.isArray(intent.role)
-        ? intent.role.join(' or ')
-        : intent.role || 'employees';
+    if (!hasRole && !hasRolesArray) {
       return {
         proposal: currentProposal,
-        message: `No available ${roleStr} match the requested criteria (Skills: ${resolvedSkills?.join(', ') || 'Any'}). Priority was given to role match.`,
+        message:
+          "Please specify which role you'd like to add (e.g., 'Add a backend developer').",
       };
     }
 
-    // Generate specifically for these spots
-    const additionProposal = await generateAllocation(
-      addDemand,
-      availableCandidates.slice(0, count * 3),
-    );
+    // Normalize to array of requests
+    const roleRequests: { roleName: string; count: number }[] =
+      intent.roles && intent.roles.length > 0
+        ? intent.roles
+        : [
+            {
+              roleName: Array.isArray(intent.role)
+                ? intent.role[0]
+                : intent.role,
+              count: intent.employeeCount || 1,
+            },
+          ];
 
-    // Merge
-    const mergedProposal = { ...currentProposal };
-    const newRole = additionProposal.roleAllocations[0];
+    let updatedProposal = { ...currentProposal };
+    const messages: string[] = [];
 
-    if (newRole && newRole.recommendations.length > 0) {
-      // Limit to requested count
-      newRole.recommendations = newRole.recommendations.slice(0, count);
-      mergedProposal.roleAllocations.push(newRole);
+    for (const req of roleRequests) {
+      const { roleName, count } = req;
+
+      const result = await handleAddSingleRole(
+        roleName,
+        count,
+        employees,
+        updatedProposal,
+        originalDemand,
+        intent,
+      );
+
+      updatedProposal = result.proposal;
+      if (result.message) {
+        messages.push(result.message);
+      }
     }
 
     return {
-      proposal: mergedProposal,
-      message: `I've added ${newRole?.recommendations.length || 0} ${roleNameDisplay} to the team.`,
+      proposal: updatedProposal,
+      message: messages.join(' '),
     };
   } catch (e) {
     console.error('Error adding employees', e);
@@ -310,6 +326,104 @@ async function handleAddEmployees(
       message: 'I failed to add the requested employees.',
     };
   }
+}
+
+async function handleAddSingleRole(
+  roleName: string,
+  count: number,
+  employees: Employee[],
+  currentProposal: AllocationProposal,
+  originalDemand: ProjectDemand,
+  intent: any,
+): Promise<{ proposal: AllocationProposal; message: string }> {
+  // 2. Resolve Skills
+  const resolvedSkills = resolvePrimarySkills(intent, originalDemand);
+
+  // 3. Resolve Candidates (Strict)
+  const candidates = resolveCandidates(
+    roleName,
+    resolvedSkills || [],
+    employees,
+  );
+
+  // Filter out already allocated
+  const currentIds = new Set(
+    currentProposal.roleAllocations.flatMap((r) =>
+      r.recommendations.map((re) => re.employeeId),
+    ),
+  );
+  const availableCandidates = candidates.filter((e) => !currentIds.has(e.id));
+
+  if (availableCandidates.length === 0) {
+    return {
+      proposal: currentProposal,
+      message: `I couldn't find any available ${roleName} candidates matching the criteria.`,
+    };
+  }
+
+  // 4. Rank
+  const ranked = await rankCandidatesWithAI(roleName, availableCandidates);
+
+  // 5. Build Selection
+  const topCandidates = ranked
+    .slice(0, count)
+    .map((r) => {
+      const emp = availableCandidates.find((e) => e.id === r.employeeId);
+      if (!emp) {
+        console.warn(
+          `[WARN] Ranked employee ${r.employeeId} not found in availableCandidates`,
+        );
+        return null;
+      }
+      return {
+        employeeId: emp.id,
+        employeeName: emp.name,
+        currentRole: emp.role,
+        confidence: r.confidence,
+        reason: r.reason,
+      };
+    })
+    .filter((r) => r !== null);
+
+  // 6. Append/Merge
+  const mergedProposal = { ...currentProposal };
+  // Double check roleAllocations exists on mergedProposal
+  if (!mergedProposal.roleAllocations) mergedProposal.roleAllocations = [];
+
+  const existingRole = mergedProposal.roleAllocations.find(
+    (r) => r.roleName.toLowerCase() === roleName.toLowerCase(),
+  );
+
+  // Soft Cap Check
+  const MAX_EXTRA_PER_ROLE = 3;
+  const currentCount = existingRole ? existingRole.recommendations.length : 0;
+
+  // Find original demand head count if possible, else assume 0 baseline
+  const originalRole = (originalDemand.roles || []).find(
+    (r) => r.roleName.toLowerCase() === roleName.toLowerCase(),
+  );
+  const baseCount = originalRole ? originalRole.headcount : 0;
+
+  if (currentCount + topCandidates.length > baseCount + MAX_EXTRA_PER_ROLE) {
+    return {
+      proposal: currentProposal,
+      message: `I cannot add more ${roleName}s. This role already has sufficient coverage (Limit: ${baseCount + MAX_EXTRA_PER_ROLE}).`,
+    };
+  }
+
+  if (existingRole) {
+    existingRole.recommendations.push(...(topCandidates as any));
+  } else {
+    mergedProposal.roleAllocations.push({
+      roleName: roleName,
+      recommendations: topCandidates as any,
+    });
+  }
+
+  return {
+    proposal: mergedProposal,
+    message: `I've added ${topCandidates.length} ${roleName}(s) to the allocation.`,
+  };
 }
 
 // Helper for REPLACE_EMPLOYEE logic
@@ -321,6 +435,7 @@ async function handleReplaceEmployee(
 ): Promise<{ proposal: AllocationProposal; message: string }> {
   const targetName = intent.targetEmployeeName;
   let removedCount = 0;
+  let removedRoleName = '';
 
   const updatedAllocations = currentProposal.roleAllocations.map((role) => {
     const initialLen = role.recommendations.length;
@@ -329,7 +444,10 @@ async function handleReplaceEmployee(
         !targetName ||
         !rec.employeeName.toLowerCase().includes(targetName.toLowerCase()),
     );
-    if (role.recommendations.length < initialLen) removedCount++;
+    if (role.recommendations.length < initialLen) {
+      removedCount++;
+      removedRoleName = role.roleName;
+    }
     return role;
   });
 
@@ -340,16 +458,21 @@ async function handleReplaceEmployee(
     };
   }
 
+  // Determine what to look for (prefer removed role, then intent role)
+  let roleToFill = removedRoleName;
+  if (intent.role) {
+    roleToFill = Array.isArray(intent.role) ? intent.role[0] : intent.role;
+  }
+
   // Fill the gap
   const resolvedSkills = resolvePrimarySkills(intent, originalDemand);
 
-  const fillDemand: ProjectDemand = {
-    ...originalDemand,
-    primarySkills: resolvedSkills || [],
-  };
-
-  // Filter with optional role enforcement if intent had one
-  const candidates = filterCandidates(fillDemand, employees, intent.role);
+  // Strict Resolve
+  const candidates = resolveCandidates(
+    roleToFill,
+    resolvedSkills || [],
+    employees,
+  );
 
   const currentIds = new Set(
     updatedAllocations.flatMap((r) =>
@@ -371,21 +494,34 @@ async function handleReplaceEmployee(
     };
   }
 
-  const replacementProposal = await generateAllocation(
-    fillDemand,
-    availableCandidates.slice(0, 3),
-  );
+  // Rank
+  const ranked = await rankCandidatesWithAI(roleToFill, availableCandidates);
 
-  if (replacementProposal.roleAllocations?.[0]?.recommendations?.[0]) {
-    const replacement =
-      replacementProposal.roleAllocations[0].recommendations[0];
-    if (updatedAllocations[0]) {
-      updatedAllocations[0].recommendations.push(replacement);
+  if (ranked.length > 0) {
+    const top = ranked[0];
+    const replacement = availableCandidates.find(
+      (e) => e.id === top.employeeId,
+    );
+
+    if (replacement) {
+      // Find the role to put them in
+      const targetRole = updatedAllocations.find(
+        (r) => r.roleName === removedRoleName,
+      );
+      if (targetRole) {
+        targetRole.recommendations.push({
+          employeeId: replacement.id,
+          employeeName: replacement.name,
+          currentRole: replacement.role,
+          confidence: top.confidence,
+          reason: top.reason,
+        });
+      }
+      return {
+        proposal: { ...currentProposal, roleAllocations: updatedAllocations },
+        message: `I've replaced ${targetName} with ${replacement.name}.`,
+      };
     }
-    return {
-      proposal: { ...currentProposal, roleAllocations: updatedAllocations },
-      message: `I've replaced ${targetName} with ${replacement.employeeName}.`,
-    };
   }
 
   return {
@@ -402,99 +538,118 @@ export async function processAgentInstruction(
   originalDemand: ProjectDemand,
   conversationHistory: { role: 'user' | 'assistant'; content: string }[] = [],
 ): Promise<{ proposal: AllocationProposal; message: string }> {
+  // Construct Explicit State
+  const state: AgentState = {
+    demand: originalDemand,
+    employees: employees,
+    currentProposal: currentProposal,
+    history: conversationHistory,
+  };
+
   // 1. Extract Intent
-  const intent = await extractAllocationIntent(
-    userMessage,
-    conversationHistory,
-  );
+  const intent = await extractAllocationIntent(userMessage, state.history);
   console.log('🤖 Agent Intent:', intent);
 
   // 2. Route Logic
   switch (intent.intentType) {
     case 'CREATE_ALLOCATION': {
       // Allow intent to override original demand (e.g. "Create for 5 people" overrides default 1)
-      let finalDemand = { ...originalDemand };
+      let finalDemand = { ...state.demand };
 
-      if (intent.employeeCount || intent.role) {
-        // Create roles array if missing
-        if (!finalDemand.roles) finalDemand.roles = [];
+      if (intent.role) {
+        // If intent specifies roles, WE CREATE THEM (overriding or seeding empty demand)
+        const roleNames = Array.isArray(intent.role)
+          ? intent.role
+          : [intent.role];
 
+        finalDemand.roles = roleNames.map((r) => ({
+          roleName: r,
+          headcount: intent.employeeCount || 1, // Default to 1 if not specified
+          requiredSkills: [], // resolveCandidates will handle this lookup or defaults
+          experienceLevel: intent.experienceLevel || 'MID',
+          allocationPercent: 100,
+        }));
+      } else if (
+        intent.employeeCount &&
+        finalDemand.roles &&
+        finalDemand.roles.length > 0
+      ) {
+        // If only count is specified, update EXISTING roles
         finalDemand.roles = finalDemand.roles.map((r) => ({
           ...r,
           headcount: intent.employeeCount || r.headcount,
-          // Only override role name if intent has one and it's a single-role project for now
-          roleName:
-            intent.role &&
-            !Array.isArray(intent.role) &&
-            finalDemand.roles.length === 1
-              ? intent.role
-              : r.roleName,
         }));
       }
 
       return {
-        proposal: await generateAllocation(finalDemand, employees),
+        proposal: await generateAllocation(finalDemand, state.employees),
         message: "I've created a new allocation based on your requirements.",
       };
     }
 
     case 'ADD_EMPLOYEES': {
-      if (!currentProposal) {
+      if (!state.currentProposal) {
         console.warn(
           'Handling ADD_EMPLOYEES checks as CREATE due to missing proposal',
         );
         // Fallback: Treat as CREATE if no proposal exists
-        let finalDemand = { ...originalDemand };
+        let finalDemand = { ...state.demand };
         if (intent.employeeCount || intent.role) {
-          finalDemand.roles = finalDemand.roles.map((r) => ({
-            ...r,
-            headcount: intent.employeeCount || r.headcount,
-            roleName:
+          finalDemand.roles = finalDemand.roles.map((r) => {
+            let targetRoleName = r.roleName;
+            if (
               intent.role &&
               !Array.isArray(intent.role) &&
               finalDemand.roles.length === 1
-                ? intent.role
-                : r.roleName,
-          }));
+            ) {
+              targetRoleName = intent.role;
+            }
+            return {
+              ...r,
+              headcount: intent.employeeCount || r.headcount,
+              roleName: targetRoleName,
+            };
+          });
         }
         return {
-          proposal: await generateAllocation(finalDemand, employees),
+          proposal: await generateAllocation(finalDemand, state.employees),
           message:
             "I've created a new allocation based on your request (started fresh).",
         };
       }
       return handleAddEmployees(
         intent,
-        employees,
-        currentProposal,
-        originalDemand,
+        state.employees,
+        state.currentProposal,
+        state.demand,
       );
     }
 
     case 'REPLACE_EMPLOYEE': {
-      if (!currentProposal) throw new Error('No active allocation to modify.');
+      if (!state.currentProposal)
+        throw new Error('No active allocation to modify.');
       return handleReplaceEmployee(
         intent,
-        employees,
-        currentProposal,
-        originalDemand,
+        state.employees,
+        state.currentProposal,
+        state.demand,
       );
     }
 
     case 'ASK_EXPLANATION':
       return {
-        proposal: currentProposal!,
+        proposal: state.currentProposal!,
         message:
           'Analysis: The current allocation is optimized for ' +
-          (originalDemand.primarySkills?.join(', ') || 'the requirements') +
+          (state.demand.primarySkills?.join(', ') || 'the requirements') +
           '.',
       };
 
     default:
       return {
         proposal:
-          currentProposal ||
-          (await generateAllocation(originalDemand, employees)),
+          state.currentProposal ||
+          (await generateAllocation(state.demand, state.employees)),
         message: 'I processed your request.',
       };
   }

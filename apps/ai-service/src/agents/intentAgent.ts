@@ -17,6 +17,12 @@ export interface AllocationIntent {
   constraints: {
     minAvailabilityPercent: number | null;
   } | null;
+
+  // New multi-role support
+  roles?: {
+    roleName: string;
+    count: number;
+  }[];
 }
 
 export async function extractAllocationIntent(
@@ -47,6 +53,12 @@ Distinguish carefully:
 - "Add", "Append", "Include more", "Also need..." -> ADD_EMPLOYEES
 - "Replace", "Swap", "Change", "Remove X and add Y" -> REPLACE_EMPLOYEE
 - If the user says "Add..." but it seems like a new request, still prefer ADD_EMPLOYEES.
+- **Micro-Instruction**: If the user asks for multiple distinct roles/counts (e.g., "Add 1 frontend and 2 backend"):
+  - Extract them into the "roles" array.
+  - Each role must have its **OWN** count.
+  - Do NOT merge counts across roles.
+  - **Do NOT populate "role" or "employeeCount" fields in this case** (leave them null).
+
 
 Intent Schema:
 {
@@ -58,7 +70,13 @@ Intent Schema:
   "targetEmployeeName": string | null,
   "constraints": {
     "minAvailabilityPercent": number | null
-  } | null
+  } | null,
+  "roles": [
+    {
+      "roleName": string,
+      "count": number
+    }
+  ] | null
 }
 
 Conversation History:
@@ -90,6 +108,7 @@ User Message: "${userMessage}"
         typeof parsed.employeeCount === 'number' ? parsed.employeeCount : null,
       targetEmployeeName: parsed.targetEmployeeName || null,
       constraints: parsed.constraints || null,
+      roles: Array.isArray(parsed.roles) ? parsed.roles : undefined,
     };
   } catch (error) {
     console.error('Failed to parse intent JSON', error);
@@ -101,6 +120,7 @@ User Message: "${userMessage}"
       experienceLevel: null,
       employeeCount: null,
       constraints: null,
+      roles: undefined,
     };
   }
 }
