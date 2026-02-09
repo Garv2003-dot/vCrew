@@ -13,8 +13,15 @@ export const mockEmployees: Employee[] = [
     ],
     availabilityPercent: 0,
     status: 'ALLOCATED',
-    currentProjects: [{ projectId: 'p1', allocationPercent: 100 }],
+    currentProjects: [
+      {
+        projectId: 'proj-002',
+        allocationPercent: 100,
+        roleName: 'Senior Frontend Dev',
+      },
+    ],
   },
+
   {
     id: '2',
     name: 'Bob Smith',
@@ -25,10 +32,17 @@ export const mockEmployees: Employee[] = [
       { skillId: 's5', name: 'PostgreSQL', proficiency: 3 },
       { skillId: 's6', name: 'AWS', proficiency: 3 },
     ],
-    availabilityPercent: 100,
-    status: 'BENCH',
-    currentProjects: [],
+    availabilityPercent: 0,
+    status: 'ALLOCATED',
+    currentProjects: [
+      {
+        projectId: 'proj-001',
+        allocationPercent: 100,
+        roleName: 'Backend Engineer',
+      },
+    ],
   },
+
   {
     id: '3',
     name: 'Charlie Davis',
@@ -38,10 +52,17 @@ export const mockEmployees: Employee[] = [
       { skillId: 's7', name: 'Agile', proficiency: 5 },
       { skillId: 's8', name: 'Jira', proficiency: 4 },
     ],
-    availabilityPercent: 50,
+    availabilityPercent: 40,
     status: 'PARTIAL',
-    currentProjects: [{ projectId: 'p2', allocationPercent: 50 }],
+    currentProjects: [
+      {
+        projectId: 'proj-001',
+        allocationPercent: 60,
+        roleName: 'Product Manager',
+      },
+    ],
   },
+
   {
     id: '4',
     name: 'Diana Prince',
@@ -51,10 +72,11 @@ export const mockEmployees: Employee[] = [
       { skillId: 's9', name: 'Figma', proficiency: 5 },
       { skillId: 's10', name: 'Prototyping', proficiency: 4 },
     ],
-    availabilityPercent: 20,
-    status: 'ALLOCATED',
-    currentProjects: [{ projectId: 'p3', allocationPercent: 80 }],
+    availabilityPercent: 100,
+    status: 'BENCH',
+    currentProjects: [],
   },
+
   {
     id: '5',
     name: 'Ethan Hunt',
@@ -65,10 +87,17 @@ export const mockEmployees: Employee[] = [
       { skillId: 's12', name: 'Docker', proficiency: 5 },
       { skillId: 's13', name: 'CI/CD', proficiency: 5 },
     ],
-    availabilityPercent: 80,
-    status: 'BENCH',
-    currentProjects: [],
+    availabilityPercent: 20,
+    status: 'PARTIAL',
+    currentProjects: [
+      {
+        projectId: 'proj-003',
+        allocationPercent: 80,
+        roleName: 'DevOps Engineer',
+      },
+    ],
   },
+
   {
     id: '6',
     name: 'Fiona Patel',
@@ -79,10 +108,11 @@ export const mockEmployees: Employee[] = [
       { skillId: 's2', name: 'TypeScript', proficiency: 4 },
       { skillId: 's3', name: 'Tailwind', proficiency: 3 },
     ],
-    availabilityPercent: 40,
-    status: 'PARTIAL',
-    currentProjects: [{ projectId: 'p4', allocationPercent: 60 }],
+    availabilityPercent: 100,
+    status: 'BENCH',
+    currentProjects: [],
   },
+
   {
     id: '7',
     name: 'George Miller',
@@ -91,12 +121,18 @@ export const mockEmployees: Employee[] = [
     skills: [
       { skillId: 's4', name: 'Node.js', proficiency: 4 },
       { skillId: 's5', name: 'PostgreSQL', proficiency: 4 },
-      { skillId: 's6', name: 'AWS', proficiency: 2 },
     ],
     availabilityPercent: 30,
     status: 'PARTIAL',
-    currentProjects: [{ projectId: 'p5', allocationPercent: 70 }],
+    currentProjects: [
+      {
+        projectId: 'proj-001',
+        allocationPercent: 70,
+        roleName: 'Backend Engineer',
+      },
+    ],
   },
+
   {
     id: '8',
     name: 'Hannah Lee',
@@ -110,6 +146,7 @@ export const mockEmployees: Employee[] = [
     status: 'BENCH',
     currentProjects: [],
   },
+
   {
     id: '9',
     name: 'Ivan Rodriguez',
@@ -122,8 +159,15 @@ export const mockEmployees: Employee[] = [
     ],
     availabilityPercent: 0,
     status: 'ALLOCATED',
-    currentProjects: [{ projectId: 'p6', allocationPercent: 100 }],
+    currentProjects: [
+      {
+        projectId: 'proj-003',
+        allocationPercent: 100,
+        roleName: 'DevOps Engineer',
+      },
+    ],
   },
+
   {
     id: '10',
     name: 'Julia Nguyen',
@@ -133,10 +177,17 @@ export const mockEmployees: Employee[] = [
       { skillId: 's7', name: 'Agile', proficiency: 5 },
       { skillId: 's8', name: 'Jira', proficiency: 5 },
     ],
-    availabilityPercent: 25,
+    availabilityPercent: 40,
     status: 'PARTIAL',
-    currentProjects: [{ projectId: 'p7', allocationPercent: 75 }],
+    currentProjects: [
+      {
+        projectId: 'proj-002',
+        allocationPercent: 60,
+        roleName: 'Product Manager',
+      },
+    ],
   },
+
   {
     id: '11',
     name: 'Kevin Brown',
@@ -151,6 +202,7 @@ export const mockEmployees: Employee[] = [
     status: 'BENCH',
     currentProjects: [],
   },
+
   {
     id: '12',
     name: 'Laura Wilson',
@@ -162,9 +214,16 @@ export const mockEmployees: Employee[] = [
       { skillId: 's3', name: 'Tailwind', proficiency: 4 },
     ],
     availabilityPercent: 10,
-    status: 'ALLOCATED',
-    currentProjects: [{ projectId: 'p8', allocationPercent: 90 }],
+    status: 'PARTIAL',
+    currentProjects: [
+      {
+        projectId: 'proj-002',
+        allocationPercent: 90,
+        roleName: 'Senior Frontend Dev',
+      },
+    ],
   },
+
   {
     id: '13',
     name: 'Michael Scott',
@@ -178,6 +237,7 @@ export const mockEmployees: Employee[] = [
     status: 'BENCH',
     currentProjects: [],
   },
+
   {
     id: '14',
     name: 'Nina Kapoor',
@@ -189,8 +249,11 @@ export const mockEmployees: Employee[] = [
     ],
     availabilityPercent: 60,
     status: 'PARTIAL',
-    currentProjects: [{ projectId: 'p9', allocationPercent: 40 }],
+    currentProjects: [
+      { projectId: 'proj-001', allocationPercent: 40, roleName: 'UX Designer' },
+    ],
   },
+
   {
     id: '15',
     name: 'Oscar Chen',
@@ -205,6 +268,7 @@ export const mockEmployees: Employee[] = [
     status: 'BENCH',
     currentProjects: [],
   },
+
   {
     id: '16',
     name: 'Rahul Mehta',
@@ -219,6 +283,7 @@ export const mockEmployees: Employee[] = [
     status: 'BENCH',
     currentProjects: [],
   },
+
   {
     id: '17',
     name: 'Sneha Iyer',
@@ -229,10 +294,17 @@ export const mockEmployees: Employee[] = [
       { skillId: 's2', name: 'TypeScript', proficiency: 5 },
       { skillId: 's3', name: 'Tailwind', proficiency: 4 },
     ],
-    availabilityPercent: 80,
+    availabilityPercent: 50,
     status: 'PARTIAL',
-    currentProjects: [{ projectId: 'p10', allocationPercent: 20 }],
+    currentProjects: [
+      {
+        projectId: 'proj-002',
+        allocationPercent: 50,
+        roleName: 'Senior Frontend Dev',
+      },
+    ],
   },
+
   {
     id: '18',
     name: 'Arjun Rao',
@@ -247,6 +319,7 @@ export const mockEmployees: Employee[] = [
     status: 'BENCH',
     currentProjects: [],
   },
+
   {
     id: '19',
     name: 'Meera Kulkarni',
@@ -260,6 +333,7 @@ export const mockEmployees: Employee[] = [
     status: 'BENCH',
     currentProjects: [],
   },
+
   {
     id: '20',
     name: 'Amit Verma',
@@ -271,10 +345,14 @@ export const mockEmployees: Employee[] = [
     ],
     availabilityPercent: 60,
     status: 'PARTIAL',
-    currentProjects: [{ projectId: 'p11', allocationPercent: 40 }],
+    currentProjects: [
+      {
+        projectId: 'proj-003',
+        allocationPercent: 40,
+        roleName: 'Product Manager',
+      },
+    ],
   },
-
-  // -------- BENCH-HEAVY BLOCK --------
 
   {
     id: '21',
@@ -289,6 +367,7 @@ export const mockEmployees: Employee[] = [
     status: 'BENCH',
     currentProjects: [],
   },
+
   {
     id: '22',
     name: 'Pooja Nair',
@@ -302,6 +381,7 @@ export const mockEmployees: Employee[] = [
     status: 'BENCH',
     currentProjects: [],
   },
+
   {
     id: '23',
     name: 'Siddharth Jain',
@@ -313,8 +393,15 @@ export const mockEmployees: Employee[] = [
     ],
     availabilityPercent: 90,
     status: 'PARTIAL',
-    currentProjects: [{ projectId: 'p12', allocationPercent: 10 }],
+    currentProjects: [
+      {
+        projectId: 'proj-003',
+        allocationPercent: 10,
+        roleName: 'DevOps Engineer',
+      },
+    ],
   },
+
   {
     id: '24',
     name: 'Neha Agarwal',
@@ -328,6 +415,7 @@ export const mockEmployees: Employee[] = [
     status: 'BENCH',
     currentProjects: [],
   },
+
   {
     id: '25',
     name: 'Vikram Singh',
@@ -342,8 +430,6 @@ export const mockEmployees: Employee[] = [
     currentProjects: [],
   },
 
-  // -------- SCALE OUT --------
-
   {
     id: '26',
     name: 'Ananya Bose',
@@ -356,8 +442,15 @@ export const mockEmployees: Employee[] = [
     ],
     availabilityPercent: 70,
     status: 'PARTIAL',
-    currentProjects: [{ projectId: 'p13', allocationPercent: 30 }],
+    currentProjects: [
+      {
+        projectId: 'proj-002',
+        allocationPercent: 30,
+        roleName: 'Senior Frontend Dev',
+      },
+    ],
   },
+
   {
     id: '27',
     name: 'Rohan Malhotra',
@@ -371,6 +464,4 @@ export const mockEmployees: Employee[] = [
     status: 'BENCH',
     currentProjects: [],
   },
-
-  // BENCH burst (for AI allocation testing)
 ];

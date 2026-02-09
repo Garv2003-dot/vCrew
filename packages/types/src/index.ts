@@ -12,11 +12,12 @@ export interface Employee {
 
   availabilityPercent: number;
 
-  status: 'ALLOCATED' | 'PARTIAL' | 'BENCH' | 'SHADOW';
+  status: 'ALLOCATED' | 'PARTIAL' | 'BENCH' | 'SHADOW' | 'ON_LEAVE'; // Added ON_LEAVE for consistency
 
   currentProjects: {
     projectId: string;
     allocationPercent: number;
+    roleName: string; // Added roleName for better tracking
   }[];
 }
 
@@ -27,19 +28,28 @@ export interface Project {
   startDate: string;
   durationMonths: number;
   status: 'PLANNED' | 'ACTIVE' | 'COMPLETED';
+  assignedEmployees: {
+    employeeId: string;
+    allocationPercent: number;
+    roleName: string; // Added roleName
+  }[];
 }
 
 export interface AllocationProposal {
   projectName: string;
+  projectId?: string; // Optional context
+  type: 'NEW' | 'EXISTING'; // Context
 
   roleAllocations: {
     roleName: string;
     recommendations: {
       employeeId: string;
       employeeName: string;
-      currentRole: string; // Added to display real role
+      currentRole: string;
       confidence: number;
       reason: string;
+      status: 'EXISTING' | 'NEW' | 'REMOVED'; // Track change status
+      allocationPercent: number; // Support partial allocation
     }[];
   }[];
 
@@ -55,7 +65,7 @@ export interface Skill {
 export interface ProjectDemand {
   demandId: string;
   projectType: 'NEW' | 'EXISTING';
-  projectId?: string; // For existing projects
+  projectId?: string;
 
   // Role details flattened/expanded as per new requirements
   role: string;
@@ -83,7 +93,7 @@ export interface ProjectDemand {
 }
 
 export interface AgentMemoryEntry {
-  id: string; // uuid
+  id: string;
   timestamp: string;
 
   userMessage: string;
@@ -101,11 +111,27 @@ export interface AgentMemoryEntry {
   afterProposal: AllocationProposal;
 }
 
+export interface DemandChangeLog {
+  timestamp: string;
+  source: 'FORM' | 'CHAT' | 'AGENT';
+  delta: {
+    roleName: string;
+    headcountChange: number;
+    reason?: string;
+  };
+}
+
+export interface CanonicalProjectDemand extends ProjectDemand {
+  // Enforce rigid structure if needed, or just alias for clarity of intent
+  isCanonical: true;
+  changeLog: DemandChangeLog[];
+}
+
 export interface AgentConversationContext {
   messages: {
     role: 'user' | 'assistant';
     content: string;
   }[];
-  lastIntent?: any; // Avoiding circular dependency for now, or use AllocationIntent if moved to shared types
+  lastIntent?: any;
   lastAction?: string;
 }

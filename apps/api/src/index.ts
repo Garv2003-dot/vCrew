@@ -2,7 +2,6 @@ import { allocationRoutes } from './routes/allocation';
 import express from 'express';
 import cors from 'cors';
 import { employeeRoutes } from './routes/employees';
-import { projectRoutes } from './routes/projects';
 
 const app = express();
 const port = 3001;
@@ -15,7 +14,6 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/employees', employeeRoutes);
-app.use('/api/projects', projectRoutes);
 app.use('/api/allocation', allocationRoutes);
 
 app.listen(port, () => {

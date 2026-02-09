@@ -23,6 +23,9 @@ export interface AllocationIntent {
     roleName: string;
     count: number;
   }[];
+
+  // Incremental update flag
+  incremental?: boolean | null;
 }
 
 export async function extractAllocationIntent(
@@ -47,6 +50,7 @@ Rules:
 - Output ONLY valid JSON.
 - If identifying a replacement target (e.g. "Replace Bob"), put "Bob" in targetEmployeeName.
 - **CONTEXT MATTERS:** Look at the conversation history. If the user says "add one more", check previous messages to know WHAT to add.
+- If the user uses words like: "more", "another", "additional", "one more", Set "incremental": true.
 
 Distinguish carefully:
 - "Create", "New", "Generate", "I need team for..." -> CREATE_ALLOCATION
@@ -76,7 +80,8 @@ Intent Schema:
       "roleName": string,
       "count": number
     }
-  ] | null
+  ] | null,
+  "incremental": boolean | null
 }
 
 Conversation History:
@@ -109,6 +114,8 @@ User Message: "${userMessage}"
       targetEmployeeName: parsed.targetEmployeeName || null,
       constraints: parsed.constraints || null,
       roles: Array.isArray(parsed.roles) ? parsed.roles : undefined,
+      incremental:
+        typeof parsed.incremental === 'boolean' ? parsed.incremental : null,
     };
   } catch (error) {
     console.error('Failed to parse intent JSON', error);

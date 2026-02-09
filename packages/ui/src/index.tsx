@@ -122,9 +122,9 @@ export const Sidebar = ({
     <aside className="w-64 bg-slate-900 text-white flex flex-col h-full border-r border-slate-800">
       <div className="p-6 border-b border-slate-800 flex items-center gap-2">
         <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center font-bold text-xl">
-          E
+          V
         </div>
-        <span className="font-bold text-lg tracking-tight">Enterprise</span>
+        <span className="font-bold text-lg tracking-tight">vCrew</span>
       </div>
       <nav className="flex-1 px-4 py-6 space-y-1">
         {items.map((item) => {

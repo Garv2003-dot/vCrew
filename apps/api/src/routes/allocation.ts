@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { ProjectDemand } from '@repo/types';
 import { generateAllocation, processAgentInstruction } from '@repo/ai-service';
 import { mockEmployees } from '../data/mockEmployees';
+import { mockProjects } from '../data/mockProjects';
 
 export const allocationRoutes = Router();
 
@@ -9,7 +10,17 @@ allocationRoutes.post('/demand', async (req, res) => {
   try {
     const demand: ProjectDemand = req.body;
 
-    const proposal = await generateAllocation(demand, mockEmployees);
+    const projects = mockProjects.map((p) => ({
+      id: p.projectId,
+      name: p.projectName,
+      description: `Client: ${p.client}`,
+      startDate: p.startDate,
+      durationMonths: 6, // Approximate or calculate
+      status: p.status as 'PLANNED' | 'ACTIVE' | 'COMPLETED',
+      assignedEmployees: p.assignedEmployees,
+    }));
+
+    const proposal = await generateAllocation(demand, mockEmployees, projects);
 
     res.json(proposal);
   } catch (err) {
@@ -31,12 +42,23 @@ allocationRoutes.post('/instruction', async (req, res) => {
         .json({ error: 'Missing message or original demand' });
     }
 
+    const projects = mockProjects.map((p) => ({
+      id: p.projectId,
+      name: p.projectName,
+      description: `Client: ${p.client}`,
+      startDate: p.startDate,
+      durationMonths: 6,
+      status: p.status as 'PLANNED' | 'ACTIVE' | 'COMPLETED',
+      assignedEmployees: p.assignedEmployees,
+    }));
+
     const result = await processAgentInstruction(
       message,
       mockEmployees,
       currentProposal || null,
       demand,
       conversation || [],
+      projects,
     );
 
     res.json(result);
