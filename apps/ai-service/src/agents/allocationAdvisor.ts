@@ -234,19 +234,22 @@ Rules:
       );
     }
 
-    // 1️⃣ Enforce ranking output schema strictly
+    // 1️⃣ Enforce ranking output schema: employeeId string, confidence number or string (LLM may return "1.0")
     if (
       !parsed.rankedCandidates.every(
         (r: any) =>
-          typeof r.employeeId === 'string' && typeof r.confidence === 'number',
+          typeof r.employeeId === 'string' &&
+          (typeof r.confidence === 'number' ||
+            (typeof r.confidence === 'string' &&
+              !Number.isNaN(Number(r.confidence)))),
       )
     ) {
       throw new Error('Invalid ranking payload: schema mismatch');
     }
 
-    // 🛡️ Post-AI Validation
+    // 🛡️ Post-AI Validation + normalize confidence to number
     const seen = new Set<string>();
-    const validated = [];
+    const validated: { employeeId: string; confidence: number; reason: string }[] = [];
     const validIds = new Set(candidates.map((c) => c.id));
 
     for (const r of parsed.rankedCandidates) {
@@ -255,7 +258,15 @@ Rules:
         !seen.has(r.employeeId) // Must not be a duplicate
       ) {
         seen.add(r.employeeId);
-        validated.push(r);
+        const confidence =
+          typeof r.confidence === 'number'
+            ? r.confidence
+            : Math.min(1, Math.max(0, Number(r.confidence)));
+        validated.push({
+          employeeId: r.employeeId,
+          confidence,
+          reason: typeof r.reason === 'string' ? r.reason : 'Ranked by AI',
+        });
       }
     }
 

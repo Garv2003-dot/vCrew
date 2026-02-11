@@ -158,9 +158,7 @@ export default function ProjectRequirementsForm({
       startDate: new Date(startDate).toISOString(),
       durationMonths: duration,
       probabilityOfConversion:
-        projectType === "NEW" || projectType === "GENERAL_DEMAND"
-          ? probability
-          : undefined,
+        projectType === "NEW" ? probability : undefined,
       context: context.trim() || undefined,
       resourceDescription: resourceDescription.trim() || undefined,
       roles: explicitRoles, // If empty, API parses resourceDescription
@@ -169,8 +167,7 @@ export default function ProjectRequirementsForm({
   };
 
   const showProjectRef = projectType === "NEW" || projectType === "EXISTING";
-  const showProbability =
-    projectType === "NEW" || projectType === "GENERAL_DEMAND";
+  const showProbability = projectType === "NEW";
 
   return (
     <Card title="Project Demand" className="h-full overflow-y-auto">
