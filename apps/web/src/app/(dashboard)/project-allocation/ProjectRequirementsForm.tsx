@@ -1,34 +1,30 @@
-import React, { useState, useEffect } from "react";
-import { Card, Button, Input } from "@repo/ui";
-import { ProjectDemand } from "@repo/types";
+import React, { useState, useEffect } from 'react';
+import { Card, Button, Input } from '@repo/ui';
+import { ProjectDemand } from '@repo/types';
 
-const MOCK_PROJECTS = [
-  { id: "proj-001", name: "Payments Platform Revamp" },
-  { id: "proj-002", name: "Mobile App Modernization" },
-  { id: "proj-003", name: "Cloud Migration Phase 2" },
-];
+import { mockProjects } from '@repo/api/src/data/mockProjects';
 
 const ROLE_OPTIONS = [
-  "Frontend Developer",
-  "Backend Developer",
-  "Senior Frontend Dev",
-  "Backend Engineer",
-  "Full Stack Developer",
-  "UX Designer",
-  "DevOps Engineer",
-  "Product Manager",
-  "QA",
-  "Data Scientist",
+  'Frontend Developer',
+  'Backend Developer',
+  'Senior Frontend Dev',
+  'Backend Engineer',
+  'Full Stack Developer',
+  'UX Designer',
+  'DevOps Engineer',
+  'Product Manager',
+  'QA',
+  'Data Scientist',
 ];
 
-type ProjectType = "NEW" | "EXISTING" | "GENERAL_DEMAND";
+type ProjectType = 'NEW' | 'EXISTING' | 'GENERAL_DEMAND';
 
 interface RoleRow {
   id: string;
   roleName: string;
   primarySkills: string;
   secondarySkills: string;
-  experienceLevel: "JUNIOR" | "MID" | "SENIOR";
+  experienceLevel: 'JUNIOR' | 'MID' | 'SENIOR';
   headcount: number;
 }
 
@@ -43,25 +39,25 @@ export default function ProjectRequirementsForm({
   isLoading,
   initialValues = {},
 }: ProjectRequirementsFormProps) {
-  const [demandId, setDemandId] = useState("");
+  const [demandId, setDemandId] = useState('');
   const [projectType, setProjectType] = useState<ProjectType>(
-    (initialValues.projectType as ProjectType) || "NEW",
+    (initialValues.projectType as ProjectType) || 'NEW',
   );
-  const [projectNameInput, setProjectNameInput] = useState("");
-  const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [projectNameInput, setProjectNameInput] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState('');
 
   const [startDate, setStartDate] = useState(
     initialValues.startDate
-      ? initialValues.startDate.split("T")[0]
-      : new Date().toISOString().split("T")[0],
+      ? initialValues.startDate.split('T')[0]
+      : new Date().toISOString().split('T')[0],
   );
   const [duration, setDuration] = useState(initialValues.durationMonths || 3);
-  const [priority, setPriority] = useState(initialValues.priority || "HIGH");
+  const [priority, setPriority] = useState(initialValues.priority || 'HIGH');
   const [probability, setProbability] = useState(80);
-  const [context, setContext] = useState(initialValues.context || "");
+  const [context, setContext] = useState(initialValues.context || '');
 
   const [resourceDescription, setResourceDescription] = useState(
-    initialValues.resourceDescription || "",
+    initialValues.resourceDescription || '',
   );
 
   const [roleRows, setRoleRows] = useState<RoleRow[]>(() => {
@@ -70,9 +66,9 @@ export default function ProjectRequirementsForm({
       return roles.map((r, i) => ({
         id: `role-${i}-${Date.now()}`,
         roleName: r.roleName,
-        primarySkills: r.requiredSkills?.map((s) => s.name).join(", ") || "",
-        secondarySkills: "",
-        experienceLevel: r.experienceLevel || "MID",
+        primarySkills: r.requiredSkills?.map((s) => s.name).join(', ') || '',
+        secondarySkills: '',
+        experienceLevel: r.experienceLevel || 'MID',
         headcount: r.headcount || 1,
       }));
     }
@@ -87,7 +83,7 @@ export default function ProjectRequirementsForm({
     }
     if (initialValues.projectType)
       setProjectType(initialValues.projectType as ProjectType);
-    if (initialValues.projectType === "NEW" && initialValues.projectName) {
+    if (initialValues.projectType === 'NEW' && initialValues.projectName) {
       setProjectNameInput(initialValues.projectName);
     } else if (initialValues.projectId) {
       setSelectedProjectId(initialValues.projectId);
@@ -101,10 +97,10 @@ export default function ProjectRequirementsForm({
       ...prev,
       {
         id: `role-${Date.now()}-${prev.length}`,
-        roleName: "Backend Engineer",
-        primarySkills: "",
-        secondarySkills: "",
-        experienceLevel: "MID",
+        roleName: 'Backend Engineer',
+        primarySkills: '',
+        secondarySkills: '',
+        experienceLevel: 'MID',
         headcount: 1,
       },
     ]);
@@ -126,10 +122,11 @@ export default function ProjectRequirementsForm({
 
   const handleSubmit = () => {
     const finalProjectName =
-      projectType === "EXISTING"
-        ? MOCK_PROJECTS.find((p) => p.id === selectedProjectId)?.name || ""
+      projectType === 'EXISTING'
+        ? mockProjects.find((p) => p.projectId === selectedProjectId)
+            ?.projectName || ''
         : projectNameInput ||
-          (projectType === "GENERAL_DEMAND" ? "General Demand" : "");
+          (projectType === 'GENERAL_DEMAND' ? 'General Demand' : '');
 
     const explicitRoles = roleRows
       .filter((r) => r.roleName && r.headcount > 0)
@@ -137,7 +134,7 @@ export default function ProjectRequirementsForm({
         roleName: r.roleName,
         headcount: Math.max(1, r.headcount),
         requiredSkills: r.primarySkills
-          .split(",")
+          .split(',')
           .map((s) => s.trim())
           .filter(Boolean)
           .map((s, i) => ({
@@ -152,13 +149,12 @@ export default function ProjectRequirementsForm({
     const demand: ProjectDemand = {
       demandId,
       projectType,
-      projectId: projectType === "EXISTING" ? selectedProjectId : undefined,
+      projectId: projectType === 'EXISTING' ? selectedProjectId : undefined,
       projectName: finalProjectName,
-      priority: priority as "HIGH" | "MEDIUM" | "LOW",
+      priority: priority as 'HIGH' | 'MEDIUM' | 'LOW',
       startDate: new Date(startDate).toISOString(),
       durationMonths: duration,
-      probabilityOfConversion:
-        projectType === "NEW" ? probability : undefined,
+      probabilityOfConversion: projectType === 'NEW' ? probability : undefined,
       context: context.trim() || undefined,
       resourceDescription: resourceDescription.trim() || undefined,
       roles: explicitRoles, // If empty, API parses resourceDescription
@@ -166,8 +162,8 @@ export default function ProjectRequirementsForm({
     onSubmit(demand);
   };
 
-  const showProjectRef = projectType === "NEW" || projectType === "EXISTING";
-  const showProbability = projectType === "NEW";
+  const showProjectRef = projectType === 'NEW' || projectType === 'EXISTING';
+  const showProbability = projectType === 'NEW';
 
   return (
     <Card title="Project Demand" className="h-full overflow-y-auto">
@@ -185,8 +181,8 @@ export default function ProjectRequirementsForm({
                 <input
                   type="radio"
                   name="projectType"
-                  checked={projectType === "NEW"}
-                  onChange={() => setProjectType("NEW")}
+                  checked={projectType === 'NEW'}
+                  onChange={() => setProjectType('NEW')}
                   className="mr-2 text-purple-600 focus:ring-purple-500"
                 />
                 <span className="text-sm text-gray-900">
@@ -197,8 +193,8 @@ export default function ProjectRequirementsForm({
                 <input
                   type="radio"
                   name="projectType"
-                  checked={projectType === "EXISTING"}
-                  onChange={() => setProjectType("EXISTING")}
+                  checked={projectType === 'EXISTING'}
+                  onChange={() => setProjectType('EXISTING')}
                   className="mr-2 text-purple-600 focus:ring-purple-500"
                 />
                 <span className="text-sm text-gray-900">Existing Project</span>
@@ -207,8 +203,8 @@ export default function ProjectRequirementsForm({
                 <input
                   type="radio"
                   name="projectType"
-                  checked={projectType === "GENERAL_DEMAND"}
-                  onChange={() => setProjectType("GENERAL_DEMAND")}
+                  checked={projectType === 'GENERAL_DEMAND'}
+                  onChange={() => setProjectType('GENERAL_DEMAND')}
                   className="mr-2 text-purple-600 focus:ring-purple-500"
                 />
                 <span className="text-sm text-gray-900">General Demand</span>
@@ -222,11 +218,11 @@ export default function ProjectRequirementsForm({
                 htmlFor="project-ref"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                {projectType === "NEW"
-                  ? "Opportunity / Project Name"
-                  : "Select Project"}
+                {projectType === 'NEW'
+                  ? 'Opportunity / Project Name'
+                  : 'Select Project'}
               </label>
-              {projectType === "NEW" ? (
+              {projectType === 'NEW' ? (
                 <Input
                   id="project-ref"
                   placeholder="e.g. Q3 AI Initiative"
@@ -242,9 +238,9 @@ export default function ProjectRequirementsForm({
                     onChange={(e) => setSelectedProjectId(e.target.value)}
                   >
                     <option value="">-- Select Existing Project --</option>
-                    {MOCK_PROJECTS.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
+                    {mockProjects.map((p) => (
+                      <option key={p.projectId} value={p.projectId}>
+                        {p.projectName}
                       </option>
                     ))}
                   </select>
@@ -256,7 +252,7 @@ export default function ProjectRequirementsForm({
             </div>
           )}
 
-          {projectType === "GENERAL_DEMAND" && (
+          {projectType === 'GENERAL_DEMAND' && (
             <div>
               <label
                 htmlFor="demand-name"
@@ -332,7 +328,7 @@ export default function ProjectRequirementsForm({
               className="mt-1 block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
               value={priority}
               onChange={(e) =>
-                setPriority(e?.target?.value as "HIGH" | "MEDIUM" | "LOW")
+                setPriority(e?.target?.value as 'HIGH' | 'MEDIUM' | 'LOW')
               }
             >
               <option value="HIGH">High</option>
@@ -426,7 +422,7 @@ export default function ProjectRequirementsForm({
                       className="w-full h-10 px-3 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-200"
                       value={row.roleName}
                       onChange={(e) =>
-                        updateRoleRow(row.id, "roleName", e.target.value)
+                        updateRoleRow(row.id, 'roleName', e.target.value)
                       }
                     >
                       {ROLE_OPTIONS.map((opt) => (
@@ -451,7 +447,7 @@ export default function ProjectRequirementsForm({
                       onChange={(e) =>
                         updateRoleRow(
                           row.id,
-                          "headcount",
+                          'headcount',
                           Math.max(1, Number(e.target.value) || 1),
                         )
                       }
@@ -469,8 +465,8 @@ export default function ProjectRequirementsForm({
                       onChange={(e) =>
                         updateRoleRow(
                           row.id,
-                          "experienceLevel",
-                          e.target.value as RoleRow["experienceLevel"],
+                          'experienceLevel',
+                          e.target.value as RoleRow['experienceLevel'],
                         )
                       }
                     >
@@ -506,7 +502,7 @@ export default function ProjectRequirementsForm({
                       className="h-10"
                       value={row.primarySkills}
                       onChange={(e) =>
-                        updateRoleRow(row.id, "primarySkills", e.target.value)
+                        updateRoleRow(row.id, 'primarySkills', e.target.value)
                       }
                     />
                   </div>
@@ -520,7 +516,7 @@ export default function ProjectRequirementsForm({
                       className="h-10"
                       value={row.secondarySkills}
                       onChange={(e) =>
-                        updateRoleRow(row.id, "secondarySkills", e.target.value)
+                        updateRoleRow(row.id, 'secondarySkills', e.target.value)
                       }
                     />
                   </div>
@@ -535,11 +531,11 @@ export default function ProjectRequirementsForm({
           isLoading={isLoading}
           className="w-full bg-purple-600 hover:bg-purple-700"
         >
-          {projectType === "EXISTING"
-            ? "Find Additional Capacity"
-            : projectType === "GENERAL_DEMAND"
-              ? "Generate Allocation"
-              : "Plan New Allocation"}
+          {projectType === 'EXISTING'
+            ? 'Find Additional Capacity'
+            : projectType === 'GENERAL_DEMAND'
+              ? 'Generate Allocation'
+              : 'Plan New Allocation'}
         </Button>
       </div>
     </Card>

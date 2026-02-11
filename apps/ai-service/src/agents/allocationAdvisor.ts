@@ -5,18 +5,18 @@ import {
   Project,
   CanonicalProjectDemand,
   DemandChangeLog,
-} from "@repo/types";
-import { callGemini } from "../clients/geminiClient";
-import { extractAllocationIntent } from "./intentAgent";
+} from '@repo/types';
+import { callGemini } from '../clients/geminiClient';
+import { extractAllocationIntent } from './intentAgent';
 
 const ROLE_SYNONYMS: Record<string, string[]> = {
-  backend: ["backend", "server", "api", "node", "java", "go", "python"],
-  frontend: ["frontend", "ui", "react", "angular", "vue", "web"],
-  devops: ["devops", "infra", "sre", "cloud", "aws", "platform"],
-  mobile: ["mobile", "ios", "android", "react native", "flutter"],
-  qa: ["qa", "testing", "automation", "sdet"],
-  design: ["design", "ux", "ui", "product designer"],
-  manager: ["manager", "lead", "em", "director"],
+  backend: ['backend', 'server', 'api', 'node', 'java', 'go', 'python'],
+  frontend: ['frontend', 'ui', 'react', 'angular', 'vue', 'web'],
+  devops: ['devops', 'infra', 'sre', 'cloud', 'aws', 'platform'],
+  mobile: ['mobile', 'ios', 'android', 'react native', 'flutter'],
+  qa: ['qa', 'testing', 'automation', 'sdet'],
+  design: ['design', 'ux', 'ui', 'product designer'],
+  manager: ['manager', 'lead', 'em', 'director'],
 };
 
 // Explicit State Container
@@ -25,7 +25,7 @@ interface AgentState {
   employees: Employee[];
   projects: Project[];
   currentProposal: AllocationProposal | null;
-  history: { role: "user" | "assistant"; content: string }[];
+  history: { role: 'user' | 'assistant'; content: string }[];
 }
 
 // Helper to resolve skills from role if missing
@@ -40,11 +40,11 @@ function resolvePrimarySkills(
   const mapRoleToSkills = (r: string) => {
     const roleLower = r.toLowerCase();
     if (ROLE_SYNONYMS.backend.some((s) => roleLower.includes(s)))
-      return ["Node.js", "API"];
+      return ['Node.js', 'API'];
     if (ROLE_SYNONYMS.frontend.some((s) => roleLower.includes(s)))
-      return ["React", "TypeScript"];
+      return ['React', 'TypeScript'];
     if (ROLE_SYNONYMS.devops.some((s) => roleLower.includes(s)))
-      return ["Docker", "Kubernetes"];
+      return ['Docker', 'Kubernetes'];
     return [];
   };
 
@@ -72,7 +72,7 @@ export function normalizeProjectDemand(
   let canonicalRoles = [...(demand.roles || [])];
 
   // If EXISTING, merge with actual project state + any manual changes
-  if (demand.projectType === "EXISTING" && demand.projectId) {
+  if (demand.projectType === 'EXISTING' && demand.projectId) {
     const project = projects.find((p) => p.id === demand.projectId);
 
     if (project && project.assignedEmployees) {
@@ -81,7 +81,7 @@ export function normalizeProjectDemand(
 
       project.assignedEmployees.forEach((ass) => {
         // Determine role name (from assignment or fetch from employee if we had access here, assuming ass.roleName exists)
-        const roleName = ass.roleName || "Unknown Role";
+        const roleName = ass.roleName || 'Unknown Role';
         existingRolesMap.set(
           roleName,
           (existingRolesMap.get(roleName) || 0) + 1,
@@ -106,7 +106,7 @@ export function normalizeProjectDemand(
             roleName: role,
             headcount: count,
             requiredSkills: [], // derived or default
-            experienceLevel: "MID", // default
+            experienceLevel: 'MID', // default
             allocationPercent: 100,
           });
         }
@@ -136,7 +136,7 @@ function resolveCandidates(
     if (e.availabilityPercent < 20) return false;
 
     // 2. Status constraint
-    if ((e.status as string) === "ON_LEAVE") return false;
+    if ((e.status as string) === 'ON_LEAVE') return false;
 
     // 3. Role Constraint (STRICT but SYNONYM-AWARE)
     const eRole = e.role.toLowerCase();
@@ -179,9 +179,9 @@ async function rankCandidatesWithAI(
   const candidateContext = candidates
     .map(
       (e) =>
-        `- ${e.name} (id: ${e.id}): ${e.role}, ${e.experienceLevel}, Skills: ${e.skills.map((s) => s.name).join(", ")}, Availability: ${e.availabilityPercent}%`,
+        `- ${e.name} (id: ${e.id}): ${e.role}, ${e.experienceLevel}, Skills: ${e.skills.map((s) => s.name).join(', ')}, Availability: ${e.availabilityPercent}%`,
     )
-    .join("\n");
+    .join('\n');
 
   const prompt = `
 You are a senior technical recruiter ranking candidates for the role: ${roleName}.
@@ -205,16 +205,16 @@ Rules:
 
   try {
     const raw = await callGemini(prompt);
-    console.log("[DEBUG] AI Ranking RAW:", raw);
+    console.log('[DEBUG] AI Ranking RAW:', raw);
 
-    const start = raw.indexOf("{");
-    const end = raw.lastIndexOf("}");
-    if (start === -1 || end === -1) throw new Error("No JSON found");
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
+    if (start === -1 || end === -1) throw new Error('No JSON found');
 
     const jsonStr = raw.substring(start, end + 1);
 
     // Attempt basic fix for common trailing comma issues
-    const fixedJsonStr = jsonStr.replace(/,\s*]/g, "]").replace(/,\s*}/g, "}");
+    const fixedJsonStr = jsonStr.replace(/,\s*]/g, ']').replace(/,\s*}/g, '}');
 
     let parsed;
     try {
@@ -222,7 +222,7 @@ Rules:
     } catch (parseError) {
       // 2️⃣ Never trust repaired JSON silently - FAIL LOUDLY
       console.error(
-        "AI ranking output INVALID. Falling back to deterministic ranking.",
+        'AI ranking output INVALID. Falling back to deterministic ranking.',
         parseError,
       );
       throw parseError; // Force fallback
@@ -230,7 +230,7 @@ Rules:
 
     if (!Array.isArray(parsed.rankedCandidates)) {
       throw new Error(
-        "Invalid ranking payload: rankedCandidates is not an array",
+        'Invalid ranking payload: rankedCandidates is not an array',
       );
     }
 
@@ -238,13 +238,13 @@ Rules:
     if (
       !parsed.rankedCandidates.every(
         (r: any) =>
-          typeof r.employeeId === "string" &&
-          (typeof r.confidence === "number" ||
-            (typeof r.confidence === "string" &&
+          typeof r.employeeId === 'string' &&
+          (typeof r.confidence === 'number' ||
+            (typeof r.confidence === 'string' &&
               !Number.isNaN(Number(r.confidence)))),
       )
     ) {
-      throw new Error("Invalid ranking payload: schema mismatch");
+      throw new Error('Invalid ranking payload: schema mismatch');
     }
 
     // 🛡️ Post-AI Validation + normalize confidence to number
@@ -263,25 +263,25 @@ Rules:
       ) {
         seen.add(r.employeeId);
         const confidence =
-          typeof r.confidence === "number"
+          typeof r.confidence === 'number'
             ? r.confidence
             : Math.min(1, Math.max(0, Number(r.confidence)));
         validated.push({
           employeeId: r.employeeId,
           confidence,
-          reason: typeof r.reason === "string" ? r.reason : "Ranked by AI",
+          reason: typeof r.reason === 'string' ? r.reason : 'Ranked by AI',
         });
       }
     }
 
     return validated;
   } catch (error) {
-    console.error("Failed to rank candidates:", error);
+    console.error('Failed to rank candidates:', error);
     // 🔒 HARD GUARANTEE: preserve candidate identity + order
     return candidates.map((c, index) => ({
       employeeId: c.id,
       confidence: 0.5 - index * 0.01, // deterministic tie-break
-      reason: "Default ranking due to AI parsing failure.",
+      reason: 'Default ranking due to AI parsing failure.',
     }));
   }
 }
@@ -292,7 +292,7 @@ export async function generateAllocation(
   employees: Employee[],
   projects: Project[] = [],
 ): Promise<AllocationProposal> {
-  console.log("[DEBUG] generateAllocation (Refactored) called");
+  console.log('[DEBUG] generateAllocation (Refactored) called');
 
   // 1. Normalize Demand (Adapter Pattern)
   // This handles merging existing projects, open roles, and preventing drift
@@ -306,7 +306,7 @@ export async function generateAllocation(
       currentRole: string;
       confidence: number;
       reason: string;
-      status: "EXISTING" | "NEW" | "REMOVED";
+      status: 'EXISTING' | 'NEW' | 'REMOVED';
       allocationPercent: number;
     }[];
   }[] = [];
@@ -323,7 +323,7 @@ export async function generateAllocation(
 
     const existingRecommendations: any[] = [];
 
-    if (demand.projectId && demand.projectType === "EXISTING") {
+    if (demand.projectId && demand.projectType === 'EXISTING') {
       const project = projects.find((p) => p.id === demand.projectId);
       if (project && project.assignedEmployees) {
         project.assignedEmployees.forEach((ass) => {
@@ -340,8 +340,8 @@ export async function generateAllocation(
                 employeeName: emp.name,
                 currentRole: emp.role,
                 confidence: 1.0,
-                reason: "Already assigned to this project.",
-                status: "EXISTING",
+                reason: 'Already assigned to this project.',
+                status: 'EXISTING',
                 allocationPercent: ass.allocationPercent,
               });
             }
@@ -391,7 +391,7 @@ export async function generateAllocation(
             currentRole: emp.role,
             confidence: r.confidence,
             reason: r.reason,
-            status: "NEW",
+            status: 'NEW',
             allocationPercent: finalAlloc,
           };
         })
@@ -413,6 +413,46 @@ export async function generateAllocation(
     generatedAt: new Date().toISOString(),
     roleAllocations,
   };
+}
+
+// Helper to determine headcount dynamically
+async function recommendHeadcount(
+  roleName: string,
+  currentProposal: AllocationProposal,
+  originalDemand: ProjectDemand,
+): Promise<number> {
+  console.log(`[DEBUG] Recommending headcount for ${roleName}`);
+
+  const currentAllocationSummary = currentProposal.roleAllocations
+    .map((r) => `${r.roleName}: ${r.recommendations.length}`)
+    .join(', ');
+
+  const prompt = `
+You are a resource planning expert.
+Project: ${originalDemand.projectName}
+Type: ${originalDemand.projectType}
+Context: ${originalDemand.context || 'None'}
+Current Allocation: ${currentAllocationSummary || 'None'}
+
+User wants to add: "${roleName}".
+Decide the appropriate number of "${roleName}" resources to add.
+
+Rules:
+- Analyze standard ratios (e.g., 1 QA per 3-4 Devs, 1 DevOps per project or per 5-10 Devs).
+- Consider project context.
+- Returns ONLY the integer number.
+- Default to 1 if unsure or if the request implies a single resource (e.g., "add a devops").
+- Be conservative. Do not add too many unless strictly necessary.
+`;
+
+  try {
+    const raw = await callGemini(prompt);
+    const num = Number.parseInt(raw.trim(), 10);
+    return Number.isNaN(num) ? 1 : num;
+  } catch (e) {
+    console.error('Failed to recommend headcount', e);
+    return 1;
+  }
 }
 
 // Helper for ADD_EMPLOYEES logic
@@ -458,7 +498,18 @@ async function handleAddEmployees(
     const messages: string[] = [];
 
     for (const req of roleRequests) {
-      const { roleName, count } = req;
+      const { roleName } = req;
+      let { count } = req;
+
+      // Dynamic Headcount Logic
+      if (intent.autoSuggestCount) {
+        count = await recommendHeadcount(
+          roleName,
+          updatedProposal,
+          originalDemand,
+        );
+        messages.push(`(AI suggested adding ${count} ${roleName}(s))`);
+      }
 
       const result = await handleAddSingleRole(
         roleName,
@@ -477,13 +528,13 @@ async function handleAddEmployees(
 
     return {
       proposal: updatedProposal,
-      message: messages.join(" "),
+      message: messages.join(' '),
     };
   } catch (e) {
-    console.error("Error adding employees", e);
+    console.error('Error adding employees', e);
     return {
       proposal: currentProposal,
-      message: "I failed to add the requested employees.",
+      message: 'I failed to add the requested employees.',
     };
   }
 }
@@ -566,7 +617,7 @@ async function handleAddSingleRole(
         currentRole: emp.role,
         confidence: r.confidence,
         reason: r.reason,
-        status: "NEW", // Mark as NEW
+        status: 'NEW', // Mark as NEW
         allocationPercent: finalAlloc,
       };
     })
@@ -626,7 +677,7 @@ async function handleReplaceEmployee(
 ): Promise<{ proposal: AllocationProposal; message: string }> {
   const targetName = intent.targetEmployeeName;
   let removedCount = 0;
-  let removedRoleName = "";
+  let removedRoleName = '';
   // Removed employee data to restore stats if needed, or just track
   let removedRec: any = null;
 
@@ -719,7 +770,7 @@ async function handleReplaceEmployee(
           currentRole: replacement.role,
           confidence: top.confidence,
           reason: top.reason,
-          status: "NEW",
+          status: 'NEW',
           allocationPercent: finalAlloc,
         });
       }
@@ -743,7 +794,7 @@ export async function processAgentInstruction(
   employees: Employee[],
   currentProposal: AllocationProposal | null,
   originalDemand: ProjectDemand, // This comes from API/Client
-  conversationHistory: { role: "user" | "assistant"; content: string }[] = [],
+  conversationHistory: { role: 'user' | 'assistant'; content: string }[] = [],
   projects: Project[] = [],
 ): Promise<{ proposal: AllocationProposal; message: string }> {
   // Normalize immediately to Ensure Canonical State
@@ -760,11 +811,11 @@ export async function processAgentInstruction(
 
   // 1. Extract Intent
   const intent = await extractAllocationIntent(userMessage, state.history);
-  console.log("🤖 Agent Intent:", intent);
+  console.log('🤖 Agent Intent:', intent);
 
   // 2. Route Logic
   switch (intent.intentType) {
-    case "CREATE_ALLOCATION": {
+    case 'CREATE_ALLOCATION': {
       return {
         proposal: await generateAllocation(
           state.demand,
@@ -775,10 +826,10 @@ export async function processAgentInstruction(
       };
     }
 
-    case "ADD_EMPLOYEES": {
+    case 'ADD_EMPLOYEES': {
       if (!state.currentProposal) {
         console.warn(
-          "Handling ADD_EMPLOYEES checks as CREATE due to missing proposal",
+          'Handling ADD_EMPLOYEES checks as CREATE due to missing proposal',
         );
         // Fallback: Treat as CREATE if no proposal exists
         let finalDemand = { ...state.demand };
@@ -817,9 +868,9 @@ export async function processAgentInstruction(
       );
     }
 
-    case "REPLACE_EMPLOYEE": {
+    case 'REPLACE_EMPLOYEE': {
       if (!state.currentProposal)
-        throw new Error("No active allocation to modify.");
+        throw new Error('No active allocation to modify.');
       return handleReplaceEmployee(
         intent,
         state.employees,
@@ -828,13 +879,13 @@ export async function processAgentInstruction(
       );
     }
 
-    case "ASK_EXPLANATION":
+    case 'ASK_EXPLANATION':
       return {
         proposal: state.currentProposal!,
         message:
-          "Analysis: The current allocation is optimized for " +
-          (state.demand.primarySkills?.join(", ") || "the requirements") +
-          ".",
+          'Analysis: The current allocation is optimized for ' +
+          (state.demand.primarySkills?.join(', ') || 'the requirements') +
+          '.',
       };
 
     default:
@@ -846,7 +897,7 @@ export async function processAgentInstruction(
             state.employees,
             state.projects,
           )),
-        message: "I processed your request.",
+        message: 'I processed your request.',
       };
   }
 }

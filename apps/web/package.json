@@ -13,7 +13,8 @@
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "@repo/ui": "*",
-    "@repo/types": "*"
+    "@repo/types": "*",
+    "@repo/api": "*"
   },
   "devDependencies": {
     "@repo/config": "*",

@@ -12,10 +12,23 @@ export const mockEmployees: Employee[] = [
     address: '123 Oak Street, Apt 4',
     state: 'California',
     pincode: '94102',
-    description: 'Passionate about building accessible and performant web applications. Strong advocate for clean code and design systems.',
+    description:
+      'Passionate about building accessible and performant web applications. Strong advocate for clean code and design systems.',
     workExperience: [
-      { companyName: 'TechCorp', companyUrl: 'https://techcorp.com', jobTitle: 'Frontend Developer', startDate: '2019-03', endDate: '2021-06' },
-      { companyName: 'WebScale Inc', companyUrl: 'https://webscale.io', jobTitle: 'Senior Frontend Dev', startDate: '2021-07', endDate: 'Present' },
+      {
+        companyName: 'TechCorp',
+        companyUrl: 'https://techcorp.com',
+        jobTitle: 'Frontend Developer',
+        startDate: '2019-03',
+        endDate: '2021-06',
+      },
+      {
+        companyName: 'WebScale Inc',
+        companyUrl: 'https://webscale.io',
+        jobTitle: 'Senior Frontend Dev',
+        startDate: '2021-07',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'SENIOR',
     skills: [
@@ -27,8 +40,18 @@ export const mockEmployees: Employee[] = [
     status: 'ALLOCATED',
     currentProjects: [
       {
+        projectId: 'proj-001',
+        allocationPercent: 10,
+        roleName: 'Senior Frontend Dev',
+      },
+      {
         projectId: 'proj-002',
         allocationPercent: 80,
+        roleName: 'Senior Frontend Dev',
+      },
+      {
+        projectId: 'proj-003',
+        allocationPercent: 10,
         roleName: 'Senior Frontend Dev',
       },
     ],
@@ -45,9 +68,16 @@ export const mockEmployees: Employee[] = [
     address: '456 Pine Ave',
     state: 'New York',
     pincode: '10001',
-    description: 'Backend engineer focused on scalable APIs and database design. Enjoy solving complex system problems.',
+    description:
+      'Backend engineer focused on scalable APIs and database design. Enjoy solving complex system problems.',
     workExperience: [
-      { companyName: 'DataFlow', companyUrl: 'https://dataflow.io', jobTitle: 'Backend Engineer', startDate: '2020-01', endDate: 'Present' },
+      {
+        companyName: 'DataFlow',
+        companyUrl: 'https://dataflow.io',
+        jobTitle: 'Backend Engineer',
+        startDate: '2020-01',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'MID',
     skills: [
@@ -77,10 +107,23 @@ export const mockEmployees: Employee[] = [
     address: '789 Maple Drive',
     state: 'Texas',
     pincode: '77001',
-    description: 'Product leader with a track record of shipping user-centric products. Strong in agile and cross-functional collaboration.',
+    description:
+      'Product leader with a track record of shipping user-centric products. Strong in agile and cross-functional collaboration.',
     workExperience: [
-      { companyName: 'ProductLabs', companyUrl: 'https://productlabs.com', jobTitle: 'Associate PM', startDate: '2016-06', endDate: '2019-08' },
-      { companyName: 'ScaleUp', companyUrl: 'https://scaleup.co', jobTitle: 'Product Manager', startDate: '2019-09', endDate: 'Present' },
+      {
+        companyName: 'ProductLabs',
+        companyUrl: 'https://productlabs.com',
+        jobTitle: 'Associate PM',
+        startDate: '2016-06',
+        endDate: '2019-08',
+      },
+      {
+        companyName: 'ScaleUp',
+        companyUrl: 'https://scaleup.co',
+        jobTitle: 'Product Manager',
+        startDate: '2019-09',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'SENIOR',
     skills: [
@@ -109,10 +152,23 @@ export const mockEmployees: Employee[] = [
     address: '321 Cedar Lane',
     state: 'Washington',
     pincode: '98101',
-    description: 'UX designer who believes in human-centered design. I create intuitive interfaces that users love.',
+    description:
+      'UX designer who believes in human-centered design. I create intuitive interfaces that users love.',
     workExperience: [
-      { companyName: 'DesignStudio', companyUrl: 'https://designstudio.com', jobTitle: 'Junior UX Designer', startDate: '2019-02', endDate: '2021-05' },
-      { companyName: 'CreativeCo', companyUrl: 'https://creativeco.io', jobTitle: 'UX Designer', startDate: '2021-06', endDate: 'Present' },
+      {
+        companyName: 'DesignStudio',
+        companyUrl: 'https://designstudio.com',
+        jobTitle: 'Junior UX Designer',
+        startDate: '2019-02',
+        endDate: '2021-05',
+      },
+      {
+        companyName: 'CreativeCo',
+        companyUrl: 'https://creativeco.io',
+        jobTitle: 'UX Designer',
+        startDate: '2021-06',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'MID',
     skills: [
@@ -135,10 +191,23 @@ export const mockEmployees: Employee[] = [
     address: '555 Tech Park Blvd',
     state: 'California',
     pincode: '94025',
-    description: 'DevOps and infrastructure specialist. I automate everything and keep systems reliable at scale.',
+    description:
+      'DevOps and infrastructure specialist. I automate everything and keep systems reliable at scale.',
     workExperience: [
-      { companyName: 'CloudNine', companyUrl: 'https://cloudnine.com', jobTitle: 'DevOps Engineer', startDate: '2018-04', endDate: '2022-01' },
-      { companyName: 'InfraScale', companyUrl: 'https://infrascale.io', jobTitle: 'Senior DevOps Engineer', startDate: '2022-02', endDate: 'Present' },
+      {
+        companyName: 'CloudNine',
+        companyUrl: 'https://cloudnine.com',
+        jobTitle: 'DevOps Engineer',
+        startDate: '2018-04',
+        endDate: '2022-01',
+      },
+      {
+        companyName: 'InfraScale',
+        companyUrl: 'https://infrascale.io',
+        jobTitle: 'Senior DevOps Engineer',
+        startDate: '2022-02',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'SENIOR',
     skills: [
@@ -168,10 +237,23 @@ export const mockEmployees: Employee[] = [
     address: '100 Riverside Rd',
     state: 'Illinois',
     pincode: '60601',
-    description: 'Senior frontend developer with deep React and TypeScript experience. Love mentoring and code reviews.',
+    description:
+      'Senior frontend developer with deep React and TypeScript experience. Love mentoring and code reviews.',
     workExperience: [
-      { companyName: 'ReactPro', companyUrl: 'https://reactpro.com', jobTitle: 'Frontend Developer', startDate: '2017-08', endDate: '2020-11' },
-      { companyName: 'UIFirst', companyUrl: 'https://uifirst.io', jobTitle: 'Senior Frontend Dev', startDate: '2020-12', endDate: 'Present' },
+      {
+        companyName: 'ReactPro',
+        companyUrl: 'https://reactpro.com',
+        jobTitle: 'Frontend Developer',
+        startDate: '2017-08',
+        endDate: '2020-11',
+      },
+      {
+        companyName: 'UIFirst',
+        companyUrl: 'https://uifirst.io',
+        jobTitle: 'Senior Frontend Dev',
+        startDate: '2020-12',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'SENIOR',
     skills: [
@@ -195,9 +277,16 @@ export const mockEmployees: Employee[] = [
     address: '200 Harbor View',
     state: 'Massachusetts',
     pincode: '02101',
-    description: 'Backend engineer specializing in Node.js and PostgreSQL. Interested in performance and data modeling.',
+    description:
+      'Backend engineer specializing in Node.js and PostgreSQL. Interested in performance and data modeling.',
     workExperience: [
-      { companyName: 'APIWorks', companyUrl: 'https://apiworks.com', jobTitle: 'Backend Engineer', startDate: '2020-07', endDate: 'Present' },
+      {
+        companyName: 'APIWorks',
+        companyUrl: 'https://apiworks.com',
+        jobTitle: 'Backend Engineer',
+        startDate: '2020-07',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'MID',
     skills: [
@@ -226,9 +315,16 @@ export const mockEmployees: Employee[] = [
     address: '88 Design Street',
     state: 'Oregon',
     pincode: '97201',
-    description: 'UX designer with a focus on prototyping and user research. I bridge design and development.',
+    description:
+      'UX designer with a focus on prototyping and user research. I bridge design and development.',
     workExperience: [
-      { companyName: 'PixelPerfect', companyUrl: 'https://pixelperfect.co', jobTitle: 'UX Designer', startDate: '2021-01', endDate: 'Present' },
+      {
+        companyName: 'PixelPerfect',
+        companyUrl: 'https://pixelperfect.co',
+        jobTitle: 'UX Designer',
+        startDate: '2021-01',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'MID',
     skills: [
@@ -251,10 +347,23 @@ export const mockEmployees: Employee[] = [
     address: '42 Server Lane',
     state: 'Virginia',
     pincode: '22101',
-    description: 'Senior DevOps engineer. Kubernetes and Docker expert. I build and maintain CI/CD pipelines.',
+    description:
+      'Senior DevOps engineer. Kubernetes and Docker expert. I build and maintain CI/CD pipelines.',
     workExperience: [
-      { companyName: 'KubeOps', companyUrl: 'https://kubeops.io', jobTitle: 'DevOps Engineer', startDate: '2019-05', endDate: '2022-03' },
-      { companyName: 'PipeLine Pro', companyUrl: 'https://pipelinepro.com', jobTitle: 'Senior DevOps Engineer', startDate: '2022-04', endDate: 'Present' },
+      {
+        companyName: 'KubeOps',
+        companyUrl: 'https://kubeops.io',
+        jobTitle: 'DevOps Engineer',
+        startDate: '2019-05',
+        endDate: '2022-03',
+      },
+      {
+        companyName: 'PipeLine Pro',
+        companyUrl: 'https://pipelinepro.com',
+        jobTitle: 'Senior DevOps Engineer',
+        startDate: '2022-04',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'SENIOR',
     skills: [
@@ -284,9 +393,16 @@ export const mockEmployees: Employee[] = [
     address: '15 Product Way',
     state: 'Colorado',
     pincode: '80202',
-    description: 'Senior PM with expertise in B2B SaaS. I drive roadmap, stakeholder alignment, and agile delivery.',
+    description:
+      'Senior PM with expertise in B2B SaaS. I drive roadmap, stakeholder alignment, and agile delivery.',
     workExperience: [
-      { companyName: 'SaaS Labs', companyUrl: 'https://saaslabs.com', jobTitle: 'Product Manager', startDate: '2018-03', endDate: 'Present' },
+      {
+        companyName: 'SaaS Labs',
+        companyUrl: 'https://saaslabs.com',
+        jobTitle: 'Product Manager',
+        startDate: '2018-03',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'SENIOR',
     skills: [
@@ -315,9 +431,16 @@ export const mockEmployees: Employee[] = [
     address: '55 Database Ave',
     state: 'Georgia',
     pincode: '30301',
-    description: 'Backend engineer with Node.js and AWS experience. Eager to grow in distributed systems.',
+    description:
+      'Backend engineer with Node.js and AWS experience. Eager to grow in distributed systems.',
     workExperience: [
-      { companyName: 'BackendCo', companyUrl: 'https://backendco.com', jobTitle: 'Backend Engineer', startDate: '2021-06', endDate: 'Present' },
+      {
+        companyName: 'BackendCo',
+        companyUrl: 'https://backendco.com',
+        jobTitle: 'Backend Engineer',
+        startDate: '2021-06',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'MID',
     skills: [
@@ -341,10 +464,23 @@ export const mockEmployees: Employee[] = [
     address: '77 Component Rd',
     state: 'North Carolina',
     pincode: '27601',
-    description: 'Senior frontend developer. React and TypeScript specialist. I care about UX and performance.',
+    description:
+      'Senior frontend developer. React and TypeScript specialist. I care about UX and performance.',
     workExperience: [
-      { companyName: 'FrontEnd Pro', companyUrl: 'https://frontendpro.io', jobTitle: 'Frontend Developer', startDate: '2018-09', endDate: '2021-04' },
-      { companyName: 'WebCraft', companyUrl: 'https://webcraft.com', jobTitle: 'Senior Frontend Dev', startDate: '2021-05', endDate: 'Present' },
+      {
+        companyName: 'FrontEnd Pro',
+        companyUrl: 'https://frontendpro.io',
+        jobTitle: 'Frontend Developer',
+        startDate: '2018-09',
+        endDate: '2021-04',
+      },
+      {
+        companyName: 'WebCraft',
+        companyUrl: 'https://webcraft.com',
+        jobTitle: 'Senior Frontend Dev',
+        startDate: '2021-05',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'SENIOR',
     skills: [
@@ -374,9 +510,16 @@ export const mockEmployees: Employee[] = [
     address: '99 Paper Street',
     state: 'Pennsylvania',
     pincode: '19101',
-    description: 'Product manager with a people-first approach. I prioritize user needs and team collaboration.',
+    description:
+      'Product manager with a people-first approach. I prioritize user needs and team collaboration.',
     workExperience: [
-      { companyName: 'OfficePro', companyUrl: 'https://officepro.com', jobTitle: 'Associate PM', startDate: '2019-01', endDate: 'Present' },
+      {
+        companyName: 'OfficePro',
+        companyUrl: 'https://officepro.com',
+        jobTitle: 'Associate PM',
+        startDate: '2019-01',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'MID',
     skills: [
@@ -399,10 +542,23 @@ export const mockEmployees: Employee[] = [
     address: '22 Design Lane',
     state: 'Arizona',
     pincode: '85001',
-    description: 'UX designer focused on Figma and prototyping. I create flows that users love.',
+    description:
+      'UX designer focused on Figma and prototyping. I create flows that users love.',
     workExperience: [
-      { companyName: 'UX Studio', companyUrl: 'https://uxstudio.com', jobTitle: 'Junior UX Designer', startDate: '2020-03', endDate: '2022-06' },
-      { companyName: 'DesignFlow', companyUrl: 'https://designflow.io', jobTitle: 'UX Designer', startDate: '2022-07', endDate: 'Present' },
+      {
+        companyName: 'UX Studio',
+        companyUrl: 'https://uxstudio.com',
+        jobTitle: 'Junior UX Designer',
+        startDate: '2020-03',
+        endDate: '2022-06',
+      },
+      {
+        companyName: 'DesignFlow',
+        companyUrl: 'https://designflow.io',
+        jobTitle: 'UX Designer',
+        startDate: '2022-07',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'MID',
     skills: [
@@ -427,10 +583,23 @@ export const mockEmployees: Employee[] = [
     address: '33 Infra Blvd',
     state: 'Washington',
     pincode: '98102',
-    description: 'Senior DevOps engineer. Kubernetes and CI/CD expert. I keep systems running smoothly.',
+    description:
+      'Senior DevOps engineer. Kubernetes and CI/CD expert. I keep systems running smoothly.',
     workExperience: [
-      { companyName: 'CloudOps', companyUrl: 'https://cloudops.io', jobTitle: 'DevOps Engineer', startDate: '2017-11', endDate: '2021-02' },
-      { companyName: 'ScaleDevOps', companyUrl: 'https://scaledevops.com', jobTitle: 'Senior DevOps Engineer', startDate: '2021-03', endDate: 'Present' },
+      {
+        companyName: 'CloudOps',
+        companyUrl: 'https://cloudops.io',
+        jobTitle: 'DevOps Engineer',
+        startDate: '2017-11',
+        endDate: '2021-02',
+      },
+      {
+        companyName: 'ScaleDevOps',
+        companyUrl: 'https://scaledevops.com',
+        jobTitle: 'Senior DevOps Engineer',
+        startDate: '2021-03',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'SENIOR',
     skills: [
@@ -454,9 +623,16 @@ export const mockEmployees: Employee[] = [
     address: '45 MG Road',
     state: 'Karnataka',
     pincode: '560001',
-    description: 'Backend engineer with Node.js and PostgreSQL. Interested in APIs and database design.',
+    description:
+      'Backend engineer with Node.js and PostgreSQL. Interested in APIs and database design.',
     workExperience: [
-      { companyName: 'TechIndia', companyUrl: 'https://techindia.com', jobTitle: 'Backend Engineer', startDate: '2020-08', endDate: 'Present' },
+      {
+        companyName: 'TechIndia',
+        companyUrl: 'https://techindia.com',
+        jobTitle: 'Backend Engineer',
+        startDate: '2020-08',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'MID',
     skills: [
@@ -480,10 +656,23 @@ export const mockEmployees: Employee[] = [
     address: '12 Indiranagar',
     state: 'Karnataka',
     pincode: '560038',
-    description: 'Senior frontend developer. React and TypeScript expert. I lead frontend standards and reviews.',
+    description:
+      'Senior frontend developer. React and TypeScript expert. I lead frontend standards and reviews.',
     workExperience: [
-      { companyName: 'WebIndia', companyUrl: 'https://webindia.com', jobTitle: 'Frontend Developer', startDate: '2018-04', endDate: '2021-07' },
-      { companyName: 'ReactIndia', companyUrl: 'https://reactindia.io', jobTitle: 'Senior Frontend Dev', startDate: '2021-08', endDate: 'Present' },
+      {
+        companyName: 'WebIndia',
+        companyUrl: 'https://webindia.com',
+        jobTitle: 'Frontend Developer',
+        startDate: '2018-04',
+        endDate: '2021-07',
+      },
+      {
+        companyName: 'ReactIndia',
+        companyUrl: 'https://reactindia.io',
+        jobTitle: 'Senior Frontend Dev',
+        startDate: '2021-08',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'SENIOR',
     skills: [
@@ -513,9 +702,16 @@ export const mockEmployees: Employee[] = [
     address: '88 Koramangala',
     state: 'Karnataka',
     pincode: '560034',
-    description: 'DevOps engineer with Kubernetes and Docker. I build and maintain deployment pipelines.',
+    description:
+      'DevOps engineer with Kubernetes and Docker. I build and maintain deployment pipelines.',
     workExperience: [
-      { companyName: 'DevOps India', companyUrl: 'https://devopsindia.com', jobTitle: 'DevOps Engineer', startDate: '2021-02', endDate: 'Present' },
+      {
+        companyName: 'DevOps India',
+        companyUrl: 'https://devopsindia.com',
+        jobTitle: 'DevOps Engineer',
+        startDate: '2021-02',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'MID',
     skills: [
@@ -539,9 +735,16 @@ export const mockEmployees: Employee[] = [
     address: '5 HSR Layout',
     state: 'Karnataka',
     pincode: '560102',
-    description: 'UX designer with strong Figma and prototyping skills. I create intuitive and accessible designs.',
+    description:
+      'UX designer with strong Figma and prototyping skills. I create intuitive and accessible designs.',
     workExperience: [
-      { companyName: 'Design India', companyUrl: 'https://designindia.com', jobTitle: 'UX Designer', startDate: '2019-09', endDate: 'Present' },
+      {
+        companyName: 'Design India',
+        companyUrl: 'https://designindia.com',
+        jobTitle: 'UX Designer',
+        startDate: '2019-09',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'MID',
     skills: [
@@ -564,10 +767,23 @@ export const mockEmployees: Employee[] = [
     address: '20 Whitefield',
     state: 'Karnataka',
     pincode: '560066',
-    description: 'Senior PM with expertise in agile and Jira. I drive roadmap and stakeholder alignment.',
+    description:
+      'Senior PM with expertise in agile and Jira. I drive roadmap and stakeholder alignment.',
     workExperience: [
-      { companyName: 'Product India', companyUrl: 'https://productindia.com', jobTitle: 'Product Manager', startDate: '2017-06', endDate: '2020-12' },
-      { companyName: 'ScalePM', companyUrl: 'https://scalepm.io', jobTitle: 'Senior Product Manager', startDate: '2021-01', endDate: 'Present' },
+      {
+        companyName: 'Product India',
+        companyUrl: 'https://productindia.com',
+        jobTitle: 'Product Manager',
+        startDate: '2017-06',
+        endDate: '2020-12',
+      },
+      {
+        companyName: 'ScalePM',
+        companyUrl: 'https://scalepm.io',
+        jobTitle: 'Senior Product Manager',
+        startDate: '2021-01',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'SENIOR',
     skills: [
@@ -596,9 +812,16 @@ export const mockEmployees: Employee[] = [
     address: '10 Brigade Rd',
     state: 'Maharashtra',
     pincode: '400001',
-    description: 'Backend engineer with Node.js and PostgreSQL. Eager to grow in APIs and databases.',
+    description:
+      'Backend engineer with Node.js and PostgreSQL. Eager to grow in APIs and databases.',
     workExperience: [
-      { companyName: 'Backend India', companyUrl: 'https://backendindia.com', jobTitle: 'Backend Engineer', startDate: '2021-04', endDate: 'Present' },
+      {
+        companyName: 'Backend India',
+        companyUrl: 'https://backendindia.com',
+        jobTitle: 'Backend Engineer',
+        startDate: '2021-04',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'MID',
     skills: [
@@ -621,9 +844,16 @@ export const mockEmployees: Employee[] = [
     address: '7 Park Street',
     state: 'West Bengal',
     pincode: '700016',
-    description: 'UX designer with Figma and prototyping. I focus on user research and design systems.',
+    description:
+      'UX designer with Figma and prototyping. I focus on user research and design systems.',
     workExperience: [
-      { companyName: 'UX India', companyUrl: 'https://uxindia.com', jobTitle: 'UX Designer', startDate: '2020-06', endDate: 'Present' },
+      {
+        companyName: 'UX India',
+        companyUrl: 'https://uxindia.com',
+        jobTitle: 'UX Designer',
+        startDate: '2020-06',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'MID',
     skills: [
@@ -646,10 +876,23 @@ export const mockEmployees: Employee[] = [
     address: '25 DLF Phase 1',
     state: 'Haryana',
     pincode: '122002',
-    description: 'Senior DevOps engineer. Kubernetes and Docker expert. I build scalable infrastructure.',
+    description:
+      'Senior DevOps engineer. Kubernetes and Docker expert. I build scalable infrastructure.',
     workExperience: [
-      { companyName: 'Infra India', companyUrl: 'https://infraindia.com', jobTitle: 'DevOps Engineer', startDate: '2018-07', endDate: '2021-10' },
-      { companyName: 'Kube India', companyUrl: 'https://kubeindia.io', jobTitle: 'Senior DevOps Engineer', startDate: '2021-11', endDate: 'Present' },
+      {
+        companyName: 'Infra India',
+        companyUrl: 'https://infraindia.com',
+        jobTitle: 'DevOps Engineer',
+        startDate: '2018-07',
+        endDate: '2021-10',
+      },
+      {
+        companyName: 'Kube India',
+        companyUrl: 'https://kubeindia.io',
+        jobTitle: 'Senior DevOps Engineer',
+        startDate: '2021-11',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'SENIOR',
     skills: [
@@ -678,10 +921,23 @@ export const mockEmployees: Employee[] = [
     address: '18 Connaught Place',
     state: 'Delhi',
     pincode: '110001',
-    description: 'Senior frontend developer. React and TypeScript specialist. I care about accessibility and performance.',
+    description:
+      'Senior frontend developer. React and TypeScript specialist. I care about accessibility and performance.',
     workExperience: [
-      { companyName: 'FrontEnd India', companyUrl: 'https://frontendindia.com', jobTitle: 'Frontend Developer', startDate: '2017-11', endDate: '2020-08' },
-      { companyName: 'React India', companyUrl: 'https://reactindia.com', jobTitle: 'Senior Frontend Dev', startDate: '2020-09', endDate: 'Present' },
+      {
+        companyName: 'FrontEnd India',
+        companyUrl: 'https://frontendindia.com',
+        jobTitle: 'Frontend Developer',
+        startDate: '2017-11',
+        endDate: '2020-08',
+      },
+      {
+        companyName: 'React India',
+        companyUrl: 'https://reactindia.com',
+        jobTitle: 'Senior Frontend Dev',
+        startDate: '2020-09',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'SENIOR',
     skills: [
@@ -704,9 +960,16 @@ export const mockEmployees: Employee[] = [
     address: '30 Sector 18',
     state: 'Uttar Pradesh',
     pincode: '201301',
-    description: 'Product manager with agile and Jira expertise. I prioritize user needs and delivery.',
+    description:
+      'Product manager with agile and Jira expertise. I prioritize user needs and delivery.',
     workExperience: [
-      { companyName: 'PM India', companyUrl: 'https://pmindia.com', jobTitle: 'Product Manager', startDate: '2019-03', endDate: 'Present' },
+      {
+        companyName: 'PM India',
+        companyUrl: 'https://pmindia.com',
+        jobTitle: 'Product Manager',
+        startDate: '2019-03',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'MID',
     skills: [
@@ -729,10 +992,23 @@ export const mockEmployees: Employee[] = [
     address: '14 Salt Lake',
     state: 'West Bengal',
     pincode: '700091',
-    description: 'Senior frontend developer with React and TypeScript. I focus on design systems and UX.',
+    description:
+      'Senior frontend developer with React and TypeScript. I focus on design systems and UX.',
     workExperience: [
-      { companyName: 'Web India', companyUrl: 'https://webindia.io', jobTitle: 'Frontend Developer', startDate: '2018-05', endDate: '2021-02' },
-      { companyName: 'UI India', companyUrl: 'https://uiindia.com', jobTitle: 'Senior Frontend Dev', startDate: '2021-03', endDate: 'Present' },
+      {
+        companyName: 'Web India',
+        companyUrl: 'https://webindia.io',
+        jobTitle: 'Frontend Developer',
+        startDate: '2018-05',
+        endDate: '2021-02',
+      },
+      {
+        companyName: 'UI India',
+        companyUrl: 'https://uiindia.com',
+        jobTitle: 'Senior Frontend Dev',
+        startDate: '2021-03',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'SENIOR',
     skills: [
@@ -762,9 +1038,16 @@ export const mockEmployees: Employee[] = [
     address: '9 Cyber City',
     state: 'Haryana',
     pincode: '122002',
-    description: 'Backend engineer with Node.js and PostgreSQL. Interested in APIs and data modeling.',
+    description:
+      'Backend engineer with Node.js and PostgreSQL. Interested in APIs and data modeling.',
     workExperience: [
-      { companyName: 'API India', companyUrl: 'https://apiindia.com', jobTitle: 'Backend Engineer', startDate: '2020-11', endDate: 'Present' },
+      {
+        companyName: 'API India',
+        companyUrl: 'https://apiindia.com',
+        jobTitle: 'Backend Engineer',
+        startDate: '2020-11',
+        endDate: 'Present',
+      },
     ],
     experienceLevel: 'MID',
     skills: [

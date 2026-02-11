@@ -1,9 +1,9 @@
-"use client";
-import React, { useEffect, useState } from "react";
+'use client';
+import React, { useEffect, useState } from 'react';
 // Assuming @repo/ui and @repo/types are available in your monorepo
-import { Card, Button } from "@repo/ui";
-import { Employee } from "@repo/types";
-import { ENDPOINTS } from "../../../config/endpoints";
+import { Card, Button } from '@repo/ui';
+import { Employee } from '@repo/types';
+import { ENDPOINTS } from '../../../config/endpoints';
 
 // --- MOCK SVG ICONS ---
 const StarIcon = () => <span className="text-blue-500 text-lg">★</span>;
@@ -19,14 +19,28 @@ const SidebarInfoCard = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-const InfoRow = ({ label, value }: { label: string; value: string | number }) => (
+const InfoRow = ({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) => (
   <div className="grid grid-cols-3 gap-2">
     <span className="font-semibold text-gray-700 col-span-1">{label}</span>
-    <span className="text-gray-600 col-span-2 break-words">{value || "—"}</span>
+    <span className="text-gray-600 col-span-2 break-words">{value || '—'}</span>
   </div>
 );
 
-const SectionHeader = ({ title, icon, action }: { title: React.ReactNode; icon?: React.ReactNode; action?: React.ReactNode; }) => (
+const SectionHeader = ({
+  title,
+  icon,
+  action,
+}: {
+  title: React.ReactNode;
+  icon?: React.ReactNode;
+  action?: React.ReactNode;
+}) => (
   <div className="flex justify-between items-center mb-4">
     <div className="flex items-center">
       <h2 className="text-xl font-bold text-gray-900">{title}</h2>
@@ -46,50 +60,80 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(ENDPOINTS.EMPLOYEES.ME)
-      .then((res) => res.json())
-      .then((data) => {
-        setProfileData({
-          ...data,
-          age: 22,
-          gender: "Female",
-          mobile: "4389729600",
-          email: "kaushika@veersatech.com",
-          address: "D-87, sector 27, Noida",
-          state: "Uttar Pradesh",
-          pincode: "201301",
-          department: "IT",
-          employeeId: "123456",
-          jobTitle: "Full Stack Developer",
-          about: "Hi, I am Lorem Venkatesh Ipsum. Lorem ipsum dolor sit amet consectetur. A diam suspendisse tortor mattis amet risus...",
-          workExperience: [
-            { id: 1, company: "Deloitte", url: "www.deloitte.com", title: "Junior Software E...", from: "25/06/24", to: "19/03/25", cert: "certificate.png" },
-            { id: 2, company: "Deloitte", url: "www.deloitte.com", title: "Junior Software E...", from: "25/06/24", to: "19/03/25", cert: "certificate3.png" },
-          ],
-          techStack: ["JavaScript", "Python", "Tailwind", "SQL", "React Native"],
-        });
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch profile", err);
-        setLoading(false);
-      });
+    // Simulating fetch with mock data for Alice Johnson (ID: 1)
+    const aliceData = {
+      id: '1',
+      name: 'Alice Johnson',
+      role: 'Senior Frontend Dev',
+      age: 32,
+      gender: 'Female',
+      mobile: '+1-555-0101',
+      email: 'alice.johnson@example.com',
+      address: '123 Oak Street, Apt 4',
+      state: 'California',
+      pincode: '94102',
+      department: 'IT', // Mock data didn't have department, keeping IT
+      employeeId: '123456', // Mock data ID is '1', but keeping 123456 for display if preferred? Let's use mock ID '1' or keep placeholder if requested. User said "map data... from first employee". Mock has id '1'. Let's use ID '1' or keep it simple. I will use '1'.
+      about:
+        'Passionate about building accessible and performant web applications. Strong advocate for clean code and design systems.', // From description
+      workExperience: [
+        {
+          id: 1,
+          company: 'TechCorp',
+          url: 'https://techcorp.com',
+          title: 'Frontend Developer',
+          from: '2019-03',
+          to: '2021-06',
+          cert: 'certificate.png',
+        },
+        {
+          id: 2,
+          company: 'WebScale Inc',
+          url: 'https://webscale.io',
+          title: 'Senior Frontend Dev',
+          from: '2021-07',
+          to: 'Present',
+          cert: 'certificate3.png',
+        },
+      ],
+      techStack: ['React', 'TypeScript', 'Tailwind'], // From skills
+      projects: [
+        { id: 'proj-001', name: 'Rhapsody', logo: '/logos/rhapsody-logo.png' },
+        { id: 'proj-002', name: 'Neovance', logo: '/logos/neovance-logo.jpeg' },
+        { id: 'proj-003', name: 'Valeris', logo: '/logos/valeris-logo.jpeg' },
+      ],
+    };
+
+    setProfileData({
+      ...aliceData,
+      employeeId: aliceData.id,
+      jobTitle: aliceData.role,
+    });
+    setLoading(false);
   }, []);
 
-  if (loading) return <div className="p-8 text-center text-gray-500 animate-pulse">Loading profile landscape...</div>;
-  if (!profileData) return <div className="p-8 text-center text-red-500">Failed to load profile.</div>;
+  if (loading)
+    return (
+      <div className="p-8 text-center text-gray-500 animate-pulse">
+        Loading profile landscape...
+      </div>
+    );
+  if (!profileData)
+    return (
+      <div className="p-8 text-center text-red-500">
+        Failed to load profile.
+      </div>
+    );
 
   return (
     // 1. REDUCED PADDING: Changed px-4/sm:px-6/lg:px-8 to px-2/sm:px-4/lg:px-6
     // Changed overall background slightly to make the white sidebar shadow pop
-    <div className="bg-[#fbfcff] min-h-screen py-8 px-2 sm:px-4 lg:px-6 overflow-x-hidden">
+    <div className="bg-[#fbfcff] min-h-0 py-4 pb-0 px-2 sm:px-4 lg:px-6 overflow-x-hidden">
       {/* Expanded max-width from max-w-7xl to max-w-[1400px] to utilize more horizontal space */}
-      <div className="max-w-[1400px] mx-auto flex flex-col lg:flex-row gap-10 relative">
-        
+      <div className="max-w-[98%] mx-auto flex flex-col lg:flex-row gap-6 relative">
         {/* ================= LEFT SIDEBAR ================= */}
         {/* 2. SHADOW OVER RIGHT SIDE: Added bg-white, padding, custom drop shadow, and z-10 */}
         <aside className="w-full lg:w-[320px] shrink-0 space-y-6 bg-white p-5 rounded-2xl shadow-[12px_0_30px_-15px_rgba(0,0,0,0.15)] z-10 border border-gray-50">
-          
           {/* 3. CENTERED IMAGE: Removed complex horizontal flex, used justify-center */}
           <div className="flex justify-center w-full pt-2 pb-4">
             <div className="w-36 h-36 bg-gray-200 rounded-2xl overflow-hidden shadow-sm border-4 border-white">
@@ -97,9 +141,17 @@ export default function ProfilePage() {
                 src="https://i.pravatar.cc/150?img=47"
                 alt="Profile"
                 className="w-full h-full object-cover transition-transform hover:scale-105"
-                onError={(e) => { e.currentTarget.src = "fallback-image-url.png"; }}
+                onError={(e) => {
+                  e.currentTarget.src = 'fallback-image-url.png';
+                }}
               />
             </div>
+          </div>
+          <div className="text-center -mt-2 pb-2">
+            <h3 className="text-xl font-bold text-gray-900">
+              {profileData.name}
+            </h3>
+            <p className="text-sm text-gray-500">{profileData.email}</p>
           </div>
 
           {/* Details Sections */}
@@ -125,11 +177,10 @@ export default function ProfilePage() {
 
         {/* ================= RIGHT MAIN ================= */}
         {/* Main content sits safely under the z-10 shadow of the sidebar */}
-        <main className="flex-1 space-y-10 py-4">
-          
+        <main className="flex-1 space-y-6 py-4">
           <section>
             <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              {profileData.role || "Full stack Dev"} : Team Pulse
+              {profileData.role || 'Full stack Dev'} : Team Pulse
             </h1>
             <p className="text-gray-600 text-sm leading-relaxed max-w-4xl">
               {profileData.about}
@@ -147,7 +198,9 @@ export default function ProfilePage() {
                   </span>
                   <div className="flex items-center gap-1 text-xs font-normal text-gray-400 ml-4">
                     <span className="mr-2">Years of experience in skill</span>
-                    <StarIcon /><StarIcon /><StarIcon />
+                    <StarIcon />
+                    <StarIcon />
+                    <StarIcon />
                   </div>
                 </div>
               }
@@ -155,7 +208,10 @@ export default function ProfilePage() {
             />
             <div className="flex flex-wrap gap-3 mt-4">
               {profileData.techStack.map((tech: string) => (
-                <span key={tech} className="px-5 py-1.5 rounded-full text-sm text-blue-900 border border-blue-200 bg-white shadow-sm font-medium transition-colors hover:bg-blue-50">
+                <span
+                  key={tech}
+                  className="px-5 py-1.5 rounded-full text-sm text-blue-900 border border-blue-200 bg-white shadow-sm font-medium transition-colors hover:bg-blue-50"
+                >
                   {tech}
                 </span>
               ))}
@@ -167,7 +223,11 @@ export default function ProfilePage() {
 
           {/* Work Experience */}
           <section>
-            <SectionHeader title="Work Experience" icon={<BriefcaseIcon />} action="Add" />
+            <SectionHeader
+              title="Work Experience"
+              icon={<BriefcaseIcon />}
+              action="Add"
+            />
             <div className="overflow-x-auto rounded-xl border border-blue-100 shadow-sm bg-blue-50/20">
               <div className="flex gap-1.5 px-4 py-3 bg-blue-50/60 border-b border-blue-100/80">
                 <div className="w-2.5 h-2.5 rounded-full bg-blue-400/80"></div>
@@ -177,23 +237,45 @@ export default function ProfilePage() {
               <table className="min-w-full text-sm text-left whitespace-nowrap">
                 <thead className="text-gray-500 font-medium bg-white">
                   <tr>
-                    <th className="px-6 py-4 border-b border-gray-100">Company Name</th>
-                    <th className="px-6 py-4 border-b border-gray-100">Company URL</th>
-                    <th className="px-6 py-4 border-b border-gray-100">Job Title</th>
-                    <th className="px-6 py-4 border-b border-gray-100">From Date</th>
-                    <th className="px-6 py-4 border-b border-gray-100">To Date</th>
-                    <th className="px-6 py-4 border-b border-gray-100">Upload Certificate</th>
+                    <th className="px-6 py-4 border-b border-gray-100">
+                      Company Name
+                    </th>
+                    <th className="px-6 py-4 border-b border-gray-100">
+                      Company URL
+                    </th>
+                    <th className="px-6 py-4 border-b border-gray-100">
+                      Job Title
+                    </th>
+                    <th className="px-6 py-4 border-b border-gray-100">
+                      From Date
+                    </th>
+                    <th className="px-6 py-4 border-b border-gray-100">
+                      To Date
+                    </th>
+                    <th className="px-6 py-4 border-b border-gray-100">
+                      Upload Certificate
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 bg-white">
                   {profileData.workExperience.map((exp: any) => (
-                    <tr key={exp.id} className="hover:bg-gray-50/50 transition-colors group">
-                      <td className="px-6 py-4 text-gray-800 font-medium">{exp.company}</td>
-                      <td className="px-6 py-4 text-blue-600 hover:underline cursor-pointer">{exp.url}</td>
+                    <tr
+                      key={exp.id}
+                      className="hover:bg-gray-50/50 transition-colors group"
+                    >
+                      <td className="px-6 py-4 text-gray-800 font-medium">
+                        {exp.company}
+                      </td>
+                      <td className="px-6 py-4 text-blue-600 hover:underline cursor-pointer">
+                        {exp.url}
+                      </td>
                       <td className="px-6 py-4 text-gray-700">{exp.title}</td>
                       <td className="px-6 py-4 text-gray-500">{exp.from}</td>
                       <td className="px-6 py-4 text-gray-500">{exp.to}</td>
-                      <td className="px-6 py-4 text-gray-400 truncate max-w-[120px] group-hover:text-gray-700 transition-colors" title={exp.cert}>
+                      <td
+                        className="px-6 py-4 text-gray-400 truncate max-w-[120px] group-hover:text-gray-700 transition-colors"
+                        title={exp.cert}
+                      >
                         {exp.cert}
                       </td>
                     </tr>
@@ -207,11 +289,29 @@ export default function ProfilePage() {
           <section>
             <SectionHeader title="Project Capital" icon={<TargetIcon />} />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-24 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center p-4 hover:shadow-md hover:border-blue-100 transition-all cursor-pointer">
-                  <div className="text-gray-200 font-extrabold tracking-widest text-lg">LOGO</div>
+              {profileData.projects && profileData.projects.length > 0 ? (
+                profileData.projects.map((proj: any) => (
+                  <div
+                    key={proj.id}
+                    className="h-24 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center p-4 hover:shadow-md hover:border-blue-100 transition-all cursor-pointer group"
+                  >
+                    {/* Using img tag for logos as requested. */}
+                    <img
+                      src={proj.logo}
+                      alt={proj.name}
+                      className="h-12 w-auto max-w-full object-contain transition-all duration-300"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.parentElement!.innerHTML = `<span class="text-gray-400 font-bold">${proj.name}</span>`;
+                      }}
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-4 text-gray-400 text-sm italic">
+                  No active projects
                 </div>
-              ))}
+              )}
             </div>
           </section>
         </main>
