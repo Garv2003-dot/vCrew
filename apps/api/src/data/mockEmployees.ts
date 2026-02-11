@@ -28,7 +28,7 @@ export const mockEmployees: Employee[] = [
     currentProjects: [
       {
         projectId: 'proj-002',
-        allocationPercent: 100,
+        allocationPercent: 80,
         roleName: 'Senior Frontend Dev',
       },
     ],
