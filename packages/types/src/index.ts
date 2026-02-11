@@ -56,7 +56,7 @@ export interface Project {
 export interface AllocationProposal {
   projectName: string;
   projectId?: string; // Optional context
-  type: 'NEW' | 'EXISTING'; // Context
+  type: 'NEW' | 'EXISTING' | 'GENERAL_DEMAND'; // Context
 
   roleAllocations: {
     roleName: string;

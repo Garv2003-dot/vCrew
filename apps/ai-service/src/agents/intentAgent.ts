@@ -1,4 +1,4 @@
-import { callOllama } from '../clients/ollamaClient';
+import { callGemini } from '../clients/geminiClient';
 
 export interface AllocationIntent {
   intentType:
@@ -90,7 +90,7 @@ ${historyContext}
 User Message: "${userMessage}"
 `;
 
-  const raw = await callOllama(prompt);
+  const raw = await callGemini(prompt);
 
   try {
     let jsonStr = raw;

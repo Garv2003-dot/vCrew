@@ -1,3 +1,17 @@
+import path from 'path';
+import { config } from 'dotenv';
+
+// Load .env: try repo root first (works when running from apps/api or from root)
+const repoRootEnv = path.resolve(__dirname, '../../../.env');
+config({ path: repoRootEnv });
+config({ path: path.resolve(process.cwd(), '.env') });
+
+if (!process.env.GEMINI_API_KEY) {
+  console.warn(
+    '[API] GEMINI_API_KEY is not set. Create a .env file at the project root (copy .env.example) and add your key.',
+  );
+}
+
 import { allocationRoutes } from './routes/allocation';
 import express from 'express';
 import cors from 'cors';
