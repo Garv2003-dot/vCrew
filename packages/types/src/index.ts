@@ -1,8 +1,26 @@
+export interface WorkExperience {
+  companyName: string;
+  companyUrl: string;
+  jobTitle: string;
+  startDate: string;
+  endDate: string;
+}
+
 export interface Employee {
   id: string;
   name: string;
   role: string;
   experienceLevel: 'JUNIOR' | 'MID' | 'SENIOR';
+
+  age: number;
+  gender: string;
+  mobile: string;
+  email: string;
+  address: string;
+  state: string;
+  pincode: string;
+  description: string;
+  workExperience: WorkExperience[];
 
   skills: {
     skillId: string;
@@ -64,20 +82,24 @@ export interface Skill {
 
 export interface ProjectDemand {
   demandId: string;
-  projectType: 'NEW' | 'EXISTING';
+  projectType: 'NEW' | 'EXISTING' | 'GENERAL_DEMAND';
   projectId?: string;
-
-  // Role details flattened/expanded as per new requirements
-  role: string;
-  primarySkills: string[];
-  secondarySkills: string[];
-  techStack: string[];
 
   projectName: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH';
   startDate: string;
   durationMonths: number;
   probabilityOfConversion?: number;
+  /** Timeline & context description */
+  context?: string;
+
+  /** Natural language resource request, e.g. "2 Backend, 3 Frontend, 1 Project Manager, 2 QA" */
+  resourceDescription?: string;
+
+  /** Optional flattened role/skills (legacy or when not using resourceDescription) */
+  role?: string;
+  primarySkills?: string[];
+  secondarySkills?: string[];
 
   roles: {
     roleName: string;

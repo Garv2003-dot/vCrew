@@ -3,12 +3,14 @@ import { ProjectDemand } from '@repo/types';
 import { generateAllocation, processAgentInstruction } from '@repo/ai-service';
 import { mockEmployees } from '../data/mockEmployees';
 import { mockProjects } from '../data/mockProjects';
+import { ensureDemandRoles } from '../utils/parseResourceDescription';
 
 export const allocationRoutes = Router();
 
 allocationRoutes.post('/demand', async (req, res) => {
   try {
     const demand: ProjectDemand = req.body;
+    const normalizedDemand = ensureDemandRoles(demand);
 
     const projects = mockProjects.map((p) => ({
       id: p.projectId,
@@ -20,7 +22,7 @@ allocationRoutes.post('/demand', async (req, res) => {
       assignedEmployees: p.assignedEmployees,
     }));
 
-    const proposal = await generateAllocation(demand, mockEmployees, projects);
+    const proposal = await generateAllocation(normalizedDemand, mockEmployees, projects);
 
     res.json(proposal);
   } catch (err) {
