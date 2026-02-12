@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, Button, Input } from '@repo/ui';
 import type { LoadingDemand, LoadingRow } from '@repo/types';
 
@@ -47,9 +47,9 @@ export default function LoadingForm({
     initialValues.intervalLabel || 'Week',
   );
   const [context, setContext] = useState(initialValues.context || '');
-  const [priority, setPriority] = useState<
-    'LOW' | 'MEDIUM' | 'HIGH'
-  >(initialValues.priority || 'HIGH');
+  const [priority, setPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH'>(
+    initialValues.priority || 'HIGH',
+  );
 
   const [rows, setRows] = useState<LoadingRow[]>(() => {
     const existing = initialValues.rows || [];
@@ -81,7 +81,7 @@ export default function LoadingForm({
 
   const addRow = () => {
     const defaultAllocations: Record<number, number> = {};
-    intervals.forEach((_, i) => (defaultAllocations[i] = 100));
+    intervals.forEach((_, i) => (defaultAllocations[i] = 0));
     setRows((prev) => [
       ...prev,
       {
@@ -137,6 +137,71 @@ export default function LoadingForm({
     );
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (!text) return;
+
+      const lines = text.split(/\r?\n/).filter((line) => line.trim());
+      if (lines.length < 2) return; // Header + 1 row minimum
+
+      const newRows: LoadingRow[] = [];
+      let maxInt = 0;
+
+      lines.slice(1).forEach((line, idx) => {
+        const cols = line.split(',').map((c) => c.trim());
+        if (cols.length < 4) return;
+
+        const roleName = cols[0];
+        // Skills: semi-colon separated in CSV to avoid comma conflict
+        const pSkills = cols[1]
+          .split(';')
+          .map((s) => s.trim())
+          .filter(Boolean);
+        const sSkills = cols[2]
+          .split(';')
+          .map((s) => s.trim())
+          .filter(Boolean);
+
+        let level: any = cols[3].toUpperCase();
+        if (!['JUNIOR', 'MID', 'SENIOR'].includes(level)) level = 'MID';
+
+        const allocations: Record<number, number> = {};
+        for (let i = 4; i < cols.length; i++) {
+          const val = Number(cols[i]);
+          if (!isNaN(val)) {
+            allocations[i - 4] = val;
+            if (i - 4 + 1 > maxInt) maxInt = i - 4 + 1;
+          }
+        }
+
+        newRows.push({
+          id: `row-csv-${Date.now()}-${idx}`,
+          roleName,
+          primarySkills: pSkills,
+          secondarySkills: sSkills,
+          experienceLevel: level,
+          intervalAllocations: allocations,
+        });
+      });
+
+      if (newRows.length > 0) {
+        setRows((prev) => [...prev, ...newRows]);
+        if (maxInt > intervalCount) {
+          setIntervalCount(maxInt);
+        }
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   const handleSubmit = () => {
     const demand: LoadingDemand = {
       demandId,
@@ -152,23 +217,47 @@ export default function LoadingForm({
         ...r,
         primarySkills: Array.isArray(r.primarySkills)
           ? r.primarySkills
-          : (r.primarySkills as string)
+          : ((r.primarySkills as string)
               ?.split(',')
               .map((s) => s.trim())
-              .filter(Boolean) ?? [],
+              .filter(Boolean) ?? []),
         secondarySkills: Array.isArray(r.secondarySkills)
           ? r.secondarySkills
-          : (r.secondarySkills as string)
+          : ((r.secondarySkills as string)
               ?.split(',')
               .map((s) => s.trim())
-              .filter(Boolean) ?? [],
+              .filter(Boolean) ?? []),
       })),
     };
     onSubmit(demand);
   };
 
+  const importAction = (
+    <div className="flex items-center gap-2">
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: 'none' }}
+        accept=".csv"
+        onChange={handleFileUpload}
+      />
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={() => fileInputRef.current?.click()}
+        className="text-xs"
+      >
+        Import CSV
+      </Button>
+    </div>
+  );
+
   return (
-    <Card title="Resource Loading Plan" className="h-full overflow-y-auto">
+    <Card
+      title="Resource Loading Plan"
+      action={importAction}
+      className="h-full overflow-y-auto"
+    >
       <div className="space-y-6">
         {/* Project basics */}
         <div className="bg-gray-50 p-4 rounded-md space-y-4 border border-gray-100">
@@ -195,20 +284,21 @@ export default function LoadingForm({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Input
               label="Duration (months)"
-              type="number"
-              min={1}
+              type="text"
               value={durationMonths}
-              onChange={(e) => setDurationMonths(Number(e.target.value) || 1)}
+              onChange={(e) => {
+                const val = e.target.value.replaceAll(/\D/g, '');
+                setDurationMonths(Number(val) || 1);
+              }}
             />
             <Input
               label="Number of intervals"
-              type="number"
-              min={1}
-              max={52}
+              type="text"
               value={intervalCount}
-              onChange={(e) =>
-                setIntervalCount(Math.max(1, Math.min(52, Number(e.target.value) || 1)))
-              }
+              onChange={(e) => {
+                const val = e.target.value.replaceAll(/\D/g, '');
+                setIntervalCount(Math.max(0, Math.min(52, Number(val) || 0)));
+              }}
             />
             <Input
               label="Interval label"
@@ -253,14 +343,15 @@ export default function LoadingForm({
             <h3 className="text-sm font-medium text-gray-900 border-b pb-1">
               Loading Table
             </h3>
-            <Button type="button" variant="secondary" onClick={addRow} className="text-xs">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={addRow}
+              className="text-xs"
+            >
               + Add row
             </Button>
           </div>
-          <p className="text-xs text-gray-500">
-            Allocate percentage per interval (e.g. 100 = 1 FTE, 50 = 0.5 FTE). AI will assign resources per interval and split workloads if someone isn&apos;t available for the full project.
-          </p>
-
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-100">
@@ -367,10 +458,7 @@ export default function LoadingForm({
                     {intervals.map((iv) => (
                       <td key={iv.index} className="px-2 py-2">
                         <input
-                          type="number"
-                          min={0}
-                          max={500}
-                          step={50}
+                          type="text"
                           className="w-14 px-2 py-1 border border-gray-300 rounded text-sm text-center"
                           placeholder="0"
                           value={row.intervalAllocations[iv.index] ?? ''}
@@ -419,10 +507,7 @@ export default function LoadingForm({
                     </td>
                   ))}
                   <td className="px-3 py-2 text-center font-medium">
-                    {rows.reduce(
-                      (sum, r) => sum + getTotalForRow(r),
-                      0,
-                    )}
+                    {rows.reduce((sum, r) => sum + getTotalForRow(r), 0)}
                   </td>
                   <td />
                 </tr>

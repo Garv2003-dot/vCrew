@@ -14,7 +14,7 @@ export async function fetchEmployeesFromSupabase(): Promise<Employee[]> {
   if (empError) throw empError;
   if (!employees?.length) return [];
 
-  const ids = employees.map((e) => e.id);
+  const ids = employees.map((e: any) => e.id);
 
   const [skillsRes, experiencesRes, assignmentsRes] = await Promise.all([
     supabase
@@ -24,7 +24,9 @@ export async function fetchEmployeesFromSupabase(): Promise<Employee[]> {
     supabase.from('work_experiences').select('*').in('employee_id', ids),
     supabase
       .from('project_assignments')
-      .select('project_id, employee_id, role_name, allocation_percent, projects(id, name, logo)')
+      .select(
+        'project_id, employee_id, role_name, allocation_percent, projects(id, name, logo)',
+      )
       .in('employee_id', ids)
       .eq('status', 'ACTIVE'),
   ]);
@@ -46,7 +48,16 @@ export async function fetchEmployeesFromSupabase(): Promise<Employee[]> {
     }
   }
 
-  const expMap = new Map<string, { companyName: string; companyUrl: string; jobTitle: string; startDate: string; endDate: string }[]>();
+  const expMap = new Map<
+    string,
+    {
+      companyName: string;
+      companyUrl: string;
+      jobTitle: string;
+      startDate: string;
+      endDate: string;
+    }[]
+  >();
   for (const row of experiencesRes.data || []) {
     const empId = row.employee_id as string;
     if (!expMap.has(empId)) expMap.set(empId, []);
@@ -61,7 +72,13 @@ export async function fetchEmployeesFromSupabase(): Promise<Employee[]> {
 
   const assignMap = new Map<
     string,
-    { projectId: string; allocationPercent: number; roleName: string; projectName?: string; projectLogo?: string }[]
+    {
+      projectId: string;
+      allocationPercent: number;
+      roleName: string;
+      projectName?: string;
+      projectLogo?: string;
+    }[]
   >();
   for (const row of assignmentsRes.data || []) {
     const empId = row.employee_id as string;
@@ -76,7 +93,7 @@ export async function fetchEmployeesFromSupabase(): Promise<Employee[]> {
     });
   }
 
-  return employees.map((e) => ({
+  return employees.map((e: any) => ({
     id: e.id,
     name: e.name,
     role: e.role,

@@ -87,10 +87,12 @@ export const Input = ({ label, error, className, ...props }: InputProps) => {
 // --- Card Component ---
 export const Card = ({
   title,
+  action,
   children,
   className,
 }: {
   title?: string;
+  action?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }) => {
@@ -98,9 +100,12 @@ export const Card = ({
     <div
       className={`bg-white overflow-hidden shadow-sm rounded-xl border border-gray-100 ${className || ''}`}
     >
-      {title && (
-        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
-          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+      {(title || action) && (
+        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+          {title && (
+            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          )}
+          {action && <div>{action}</div>}
         </div>
       )}
       <div className="px-5 py-5 sm:p-6">{children}</div>

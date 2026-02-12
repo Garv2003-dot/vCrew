@@ -74,7 +74,17 @@ export default function ProjectRequirementsForm({
         headcount: r.headcount || 1,
       }));
     }
-    return []; // No default row – primary path is resourceDescription; add rows via "+ Add role"
+    // Default to one empty row so the section is "open"
+    return [
+      {
+        id: `role-default-${Date.now()}`,
+        roleName: '',
+        primarySkills: '',
+        secondarySkills: '',
+        experienceLevel: 'MID',
+        headcount: 1,
+      },
+    ];
   });
 
   useEffect(() => {
@@ -108,7 +118,7 @@ export default function ProjectRequirementsForm({
       ...prev,
       {
         id: `role-${Date.now()}-${prev.length}`,
-        roleName: 'Backend Engineer',
+        roleName: '',
         primarySkills: '',
         secondarySkills: '',
         experienceLevel: 'MID',
@@ -373,33 +383,11 @@ export default function ProjectRequirementsForm({
           )}
         </div>
 
-        {/* SECTION 3: Multiline – How many resources (main flow) */}
-        <div className="space-y-2">
-          <label
-            htmlFor="resource-description"
-            className="block text-sm font-medium text-gray-700"
-          >
-            How many resources do you need?
-          </label>
-          <p className="text-xs text-gray-500">
-            Describe in plain text, e.g. &quot;2 Backend, 3 Frontend, 1 Project
-            Manager, 2 QA&quot;. The AI will interpret this and suggest a team.
-          </p>
-          <textarea
-            id="resource-description"
-            rows={3}
-            className="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-            placeholder="e.g. 2 Backend, 3 Frontend, 1 Project Manager, 2 QA"
-            value={resourceDescription}
-            onChange={(e) => setResourceDescription(e.target.value)}
-          />
-        </div>
-
-        {/* SECTION 4 (Optional): Roles and Skills – add multiple resources */}
+        {/* SECTION 3: Roles and Skills – add multiple resources */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium text-gray-900 border-b pb-1">
-              Roles &amp; Skills (optional)
+              Roles &amp; Skills
             </h3>
             <Button
               type="button"
@@ -411,8 +399,7 @@ export default function ProjectRequirementsForm({
             </Button>
           </div>
           <p className="text-xs text-gray-500">
-            Optionally specify exact roles, skills, and headcount. If you add
-            rows here, these will be used instead of parsing the text above.
+            Specify exact roles, skills, and headcount.
           </p>
 
           <div className="space-y-3">
@@ -435,6 +422,9 @@ export default function ProjectRequirementsForm({
                         updateRoleRow(row.id, 'roleName', e.target.value)
                       }
                     >
+                      <option value="" disabled>
+                        Select Role
+                      </option>
                       {ROLE_OPTIONS.map((opt) => (
                         <option key={opt} value={opt}>
                           {opt}
@@ -534,6 +524,29 @@ export default function ProjectRequirementsForm({
               </div>
             ))}
           </div>
+        </div>
+
+        {/* SECTION 4: Multiline – How many resources (optional text input) */}
+        <div className="space-y-2">
+          <label
+            htmlFor="resource-description"
+            className="block text-sm font-medium text-gray-700"
+          >
+            How many resources do you need?
+          </label>
+          <p className="text-xs text-gray-500">
+            Or describe in plain text, e.g. &quot;2 Backend, 3 Frontend, 1
+            Project Manager, 2 QA&quot;. The AI will interpret this if no
+            specific roles are added above.
+          </p>
+          <textarea
+            id="resource-description"
+            rows={3}
+            className="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+            placeholder="e.g. 2 Backend, 3 Frontend, 1 Project Manager, 2 QA"
+            value={resourceDescription}
+            onChange={(e) => setResourceDescription(e.target.value)}
+          />
         </div>
 
         <Button
