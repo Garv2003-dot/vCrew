@@ -18,8 +18,7 @@ async function getAllocationData() {
 /** Convert LoadingDemand to ProjectDemand (aggregate by role for AI; per-interval AI can be extended later) */
 function loadingToProjectDemand(loading: LoadingDemand): ProjectDemand {
   const roles = loading.rows.map((row) => {
-    const total = Object.values(row.intervalAllocations).reduce((a, b) => a + b, 0);
-    const headcount = Math.max(1, Math.ceil(total / 100));
+    const headcount = Math.max(1, ...Object.values(row.intervalAllocations));
     return {
       roleName: row.roleName,
       requiredSkills: (row.primarySkills || []).map((name, i) => ({
@@ -51,7 +50,11 @@ allocationRoutes.post('/demand', async (req, res) => {
     const normalizedDemand = ensureDemandRoles(demand);
     const { employees, projects } = await getAllocationData();
 
-    const proposal = await generateAllocation(normalizedDemand, employees, projects);
+    const proposal = await generateAllocation(
+      normalizedDemand,
+      employees,
+      projects,
+    );
 
     res.json(proposal);
   } catch (err) {

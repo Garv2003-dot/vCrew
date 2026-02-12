@@ -186,7 +186,7 @@ export default function ProjectRequirementsForm({
   const showProbability = projectType === 'NEW';
 
   return (
-    <Card title="Project Demand" className="h-full overflow-y-auto">
+    <Card title="Project Demand" className="">
       <div className="space-y-6">
         {/* SECTION 1: Project Type */}
         <div className="bg-gray-50 p-4 rounded-md space-y-4 border border-gray-100">

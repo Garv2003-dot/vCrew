@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Card, Button, Input } from '@repo/ui';
+import React, { useState, useEffect } from 'react';
 import type { LoadingDemand, LoadingRow } from '@repo/types';
 
 const ROLE_OPTIONS = [
@@ -137,69 +136,57 @@ export default function LoadingForm({
     );
   };
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleImportCSV = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.click();
+  };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleExportCSV = () => {
+    const headers = [
+      'Role',
+      'Primary Skills',
+      'Secondary Skills',
+      'Level',
+      ...intervals.map((iv) => iv.label),
+    ];
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      if (!text) return;
+    const csvRows = rows.map((row) => {
+      const primarySkills = Array.isArray(row.primarySkills)
+        ? row.primarySkills.join(';')
+        : row.primarySkills || '';
+      const secondarySkills = Array.isArray(row.secondarySkills)
+        ? row.secondarySkills.join(';')
+        : row.secondarySkills || '';
 
-      const lines = text.split(/\r?\n/).filter((line) => line.trim());
-      if (lines.length < 2) return; // Header + 1 row minimum
+      const allocations = intervals.map(
+        (iv) => row.intervalAllocations[iv.index] ?? 0,
+      );
 
-      const newRows: LoadingRow[] = [];
-      let maxInt = 0;
+      return [
+        row.roleName,
+        primarySkills,
+        secondarySkills,
+        row.experienceLevel,
+        ...allocations,
+      ];
+    });
 
-      lines.slice(1).forEach((line, idx) => {
-        const cols = line.split(',').map((c) => c.trim());
-        if (cols.length < 4) return;
+    const csvContent = [
+      headers.join(','),
+      ...csvRows.map((row) => row.join(',')),
+    ].join('\n');
 
-        const roleName = cols[0];
-        // Skills: semi-colon separated in CSV to avoid comma conflict
-        const pSkills = cols[1]
-          .split(';')
-          .map((s) => s.trim())
-          .filter(Boolean);
-        const sSkills = cols[2]
-          .split(';')
-          .map((s) => s.trim())
-          .filter(Boolean);
-
-        let level: any = cols[3].toUpperCase();
-        if (!['JUNIOR', 'MID', 'SENIOR'].includes(level)) level = 'MID';
-
-        const allocations: Record<number, number> = {};
-        for (let i = 4; i < cols.length; i++) {
-          const val = Number(cols[i]);
-          if (!isNaN(val)) {
-            allocations[i - 4] = val;
-            if (i - 4 + 1 > maxInt) maxInt = i - 4 + 1;
-          }
-        }
-
-        newRows.push({
-          id: `row-csv-${Date.now()}-${idx}`,
-          roleName,
-          primarySkills: pSkills,
-          secondarySkills: sSkills,
-          experienceLevel: level,
-          intervalAllocations: allocations,
-        });
-      });
-
-      if (newRows.length > 0) {
-        setRows((prev) => [...prev, ...newRows]);
-        if (maxInt > intervalCount) {
-          setIntervalCount(maxInt);
-        }
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${projectName.trim() || 'loading-plan'}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   };
 
   const handleSubmit = () => {
@@ -232,90 +219,129 @@ export default function LoadingForm({
     onSubmit(demand);
   };
 
-  const importAction = (
-    <div className="flex items-center gap-2">
-      <input
-        type="file"
-        ref={fileInputRef}
-        style={{ display: 'none' }}
-        accept=".csv"
-        onChange={handleFileUpload}
-      />
-      <Button
-        type="button"
-        variant="secondary"
-        onClick={() => fileInputRef.current?.click()}
-        className="text-xs"
-      >
-        Import CSV
-      </Button>
-    </div>
-  );
+  const grandTotal = rows.reduce((sum, r) => sum + getTotalForRow(r), 0);
 
   return (
-    <Card
-      title="Resource Loading Plan"
-      action={importAction}
-      className="h-full overflow-y-auto"
-    >
-      <div className="space-y-6">
-        {/* Project basics */}
-        <div className="bg-gray-50 p-4 rounded-md space-y-4 border border-gray-100">
-          <div className="text-xs text-gray-400 font-mono">ID: {demandId}</div>
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Project Name"
-              placeholder="e.g. Q3 Platform Revamp"
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-            />
+    <div className="space-y-6">
+      {/* Project Overview Card */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        {/* ID bar */}
+        <div className="px-6 pt-4">
+          <span className="text-xs text-gray-400 font-mono bg-gray-50 px-2 py-0.5 rounded">
+            ID: {demandId}
+          </span>
+        </div>
+
+        <div className="px-6 py-5 space-y-5">
+          {/* Section header */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-gray-900">
+              Project Overview
+            </h2>
+            <button
+              type="button"
+              onClick={handleImportCSV}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                />
+              </svg>
+              Import CSV
+            </button>
+          </div>
+
+          {/* Row 1: Project Name + Start Date */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Project Name
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Q3 Platform Revamp"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Start Date
               </label>
               <input
                 type="date"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all"
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Input
-              label="Duration (months)"
-              type="text"
-              value={durationMonths}
-              onChange={(e) => {
-                const val = e.target.value.replaceAll(/\D/g, '');
-                setDurationMonths(Number(val) || 1);
-              }}
-            />
-            <Input
-              label="Number of intervals"
-              type="text"
-              value={intervalCount}
-              onChange={(e) => {
-                const val = e.target.value.replaceAll(/\D/g, '');
-                setIntervalCount(Math.max(0, Math.min(52, Number(val) || 0)));
-              }}
-            />
-            <Input
-              label="Interval label"
-              placeholder="e.g. Week, Phase"
-              value={intervalLabel}
-              onChange={(e) => setIntervalLabel(e.target.value)}
-            />
+
+          {/* Row 2: Duration, Intervals, Label, Priority */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Duration (months)
+              </label>
+              <input
+                type="text"
+                value={durationMonths}
+                onChange={(e) => {
+                  const val = e.target.value.replaceAll(/\D/g, '');
+                  setDurationMonths(Number(val) || 1);
+                }}
+                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Intervals
+              </label>
+              <input
+                type="text"
+                value={intervalCount}
+                onChange={(e) => {
+                  const val = e.target.value.replaceAll(/\D/g, '');
+                  setIntervalCount(Math.max(0, Math.min(52, Number(val) || 0)));
+                }}
+                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Label
+              </label>
+              <select
+                value={intervalLabel}
+                onChange={(e) => setIntervalLabel(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all appearance-none cursor-pointer"
+              >
+                <option value="Week">Week</option>
+                <option value="Sprint">Sprint</option>
+                <option value="Month">Month</option>
+                <option value="Phase">Phase</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Priority
               </label>
               <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 value={priority}
                 onChange={(e) =>
                   setPriority(e.target.value as 'LOW' | 'MEDIUM' | 'HIGH')
                 }
+                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all appearance-none cursor-pointer"
               >
                 <option value="HIGH">High</option>
                 <option value="MEDIUM">Medium</option>
@@ -323,191 +349,303 @@ export default function LoadingForm({
               </select>
             </div>
           </div>
+
+          {/* Context */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Context
             </label>
             <textarea
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
               placeholder="Brief context about the project..."
               value={context}
               onChange={(e) => setContext(e.target.value)}
+              className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all resize-none"
             />
           </div>
         </div>
+      </div>
 
-        {/* Loading table */}
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <h3 className="text-sm font-medium text-gray-900 border-b pb-1">
-              Loading Table
-            </h3>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={addRow}
-              className="text-xs"
-            >
-              + Add row
-            </Button>
+      {/* Resource Loading Card */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="px-6 py-5">
+          {/* Section header */}
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-lg font-bold text-gray-900">
+              Resource Loading
+            </h2>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleExportCSV}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Import CSV
+              </button>
+              <button
+                type="button"
+                onClick={addRow}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 4.5v15m7.5-7.5h-15"
+                  />
+                </svg>
+                Add Row
+              </button>
+            </div>
           </div>
-          <div className="overflow-x-auto border border-gray-200 rounded-lg">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium text-gray-700 whitespace-nowrap">
+
+          {/* Table */}
+          <div className="overflow-x-auto rounded-xl border border-gray-100">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                     Role
                   </th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-700 whitespace-nowrap">
-                    Primary Skills
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    Skills
                   </th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-700 whitespace-nowrap">
-                    Secondary Skills
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    Secondary
                   </th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-700 whitespace-nowrap">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                     Level
                   </th>
                   {intervals.map((iv) => (
                     <th
                       key={iv.index}
-                      className="px-2 py-2 text-center font-medium text-gray-700 whitespace-nowrap w-16"
+                      className="px-1 py-3 text-center text-xs font-medium text-gray-400 whitespace-nowrap w-12"
+                      style={{
+                        borderLeft:
+                          iv.index === 0 ? '2px dashed #d1d5db' : undefined,
+                      }}
                     >
-                      {iv.label}
+                      {iv.index + 1}
                     </th>
                   ))}
-                  <th className="px-3 py-2 text-center font-medium text-gray-700 whitespace-nowrap bg-gray-50">
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                     Total
                   </th>
                   <th className="w-10" />
                 </tr>
+                {/* Sub-header for "Allocation by Week" spanning interval columns */}
+                <tr>
+                  <th colSpan={4} />
+                  <th
+                    colSpan={intervals.length}
+                    className="text-center text-[10px] text-gray-400 tracking-widest pb-2"
+                    style={{
+                      borderLeft: '2px dashed #d1d5db',
+                    }}
+                  >
+                    Allocation by {intervalLabel}{' '}
+                    <span className="tracking-[0.3em]">··················</span>
+                  </th>
+                  <th colSpan={2} />
+                </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {rows.map((row) => (
-                  <tr key={row.id} className="hover:bg-gray-50">
-                    <td className="px-3 py-2">
-                      <select
-                        className="w-full min-w-[120px] px-2 py-1 border border-gray-300 rounded text-sm"
-                        value={row.roleName}
-                        onChange={(e) =>
-                          updateRow(row.id, 'roleName', e.target.value)
-                        }
-                      >
-                        {ROLE_OPTIONS.map((opt) => (
-                          <option key={opt} value={opt}>
-                            {opt}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        className="w-full min-w-[100px] px-2 py-1 border border-gray-300 rounded text-sm"
-                        placeholder="React, TypeScript"
-                        value={
-                          Array.isArray(row.primarySkills)
-                            ? row.primarySkills.join(', ')
-                            : row.primarySkills || ''
-                        }
-                        onChange={(e) =>
-                          updateRow(
-                            row.id,
-                            'primarySkills',
-                            e.target.value.split(',').map((s) => s.trim()),
-                          )
-                        }
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        className="w-full min-w-[80px] px-2 py-1 border border-gray-300 rounded text-sm"
-                        placeholder="Tailwind"
-                        value={
-                          Array.isArray(row.secondarySkills)
-                            ? row.secondarySkills.join(', ')
-                            : row.secondarySkills || ''
-                        }
-                        onChange={(e) =>
-                          updateRow(
-                            row.id,
-                            'secondarySkills',
-                            e.target.value.split(',').map((s) => s.trim()),
-                          )
-                        }
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <select
-                        className="w-full min-w-[90px] px-2 py-1 border border-gray-300 rounded text-sm"
-                        value={row.experienceLevel}
-                        onChange={(e) =>
-                          updateRow(
-                            row.id,
-                            'experienceLevel',
-                            e.target.value as LoadingRow['experienceLevel'],
-                          )
-                        }
-                      >
-                        <option value="JUNIOR">Junior</option>
-                        <option value="MID">Mid</option>
-                        <option value="SENIOR">Senior</option>
-                      </select>
-                    </td>
-                    {intervals.map((iv) => (
-                      <td key={iv.index} className="px-2 py-2">
-                        <input
-                          type="text"
-                          className="w-14 px-2 py-1 border border-gray-300 rounded text-sm text-center"
-                          placeholder="0"
-                          value={row.intervalAllocations[iv.index] ?? ''}
+              <tbody className="divide-y divide-gray-50">
+                {rows.map((row) => {
+                  const rowTotal = getTotalForRow(row);
+                  return (
+                    <tr
+                      key={row.id}
+                      className="hover:bg-gray-50/50 transition-colors"
+                    >
+                      <td className="px-4 py-3">
+                        <select
+                          className="w-full min-w-[140px] px-2.5 py-1.5 bg-transparent border-0 text-sm text-gray-900 focus:outline-none focus:ring-0 cursor-pointer"
+                          value={row.roleName}
                           onChange={(e) =>
-                            updateIntervalAllocation(
+                            updateRow(row.id, 'roleName', e.target.value)
+                          }
+                        >
+                          {ROLE_OPTIONS.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1 flex-wrap">
+                          {(Array.isArray(row.primarySkills)
+                            ? row.primarySkills
+                            : String(row.primarySkills || '').split(',')
+                          )
+                            .filter(Boolean)
+                            .map((skill: string, i: number) => (
+                              <span
+                                key={`ps-${skill}-${i}`}
+                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100"
+                              >
+                                {skill.trim()}
+                              </span>
+                            ))}
+                          <input
+                            type="text"
+                            className="w-20 px-1 py-0.5 border-0 bg-transparent text-xs text-gray-500 placeholder-gray-300 focus:outline-none"
+                            placeholder="+ add"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && e.currentTarget.value) {
+                                const current = Array.isArray(row.primarySkills)
+                                  ? row.primarySkills
+                                  : [];
+                                updateRow(row.id, 'primarySkills', [
+                                  ...current,
+                                  e.currentTarget.value.trim(),
+                                ]);
+                                e.currentTarget.value = '';
+                              }
+                            }}
+                          />
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1 flex-wrap">
+                          {(Array.isArray(row.secondarySkills)
+                            ? row.secondarySkills
+                            : String(row.secondarySkills || '').split(',')
+                          )
+                            .filter(Boolean)
+                            .map((skill: string, i: number) => (
+                              <span
+                                key={`ss-${skill}-${i}`}
+                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600"
+                              >
+                                {skill.trim()}
+                              </span>
+                            ))}
+                          <input
+                            type="text"
+                            className="w-16 px-1 py-0.5 border-0 bg-transparent text-xs text-gray-500 placeholder-gray-300 focus:outline-none"
+                            placeholder="+ add"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && e.currentTarget.value) {
+                                const current = Array.isArray(
+                                  row.secondarySkills,
+                                )
+                                  ? row.secondarySkills
+                                  : [];
+                                updateRow(row.id, 'secondarySkills', [
+                                  ...current,
+                                  e.currentTarget.value.trim(),
+                                ]);
+                                e.currentTarget.value = '';
+                              }
+                            }}
+                          />
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          className="w-full min-w-[70px] px-2 py-1.5 bg-white border border-gray-200 rounded-md text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 appearance-none cursor-pointer"
+                          value={row.experienceLevel}
+                          onChange={(e) =>
+                            updateRow(
                               row.id,
-                              iv.index,
-                              Math.max(0, Number(e.target.value) || 0),
+                              'experienceLevel',
+                              e.target.value as LoadingRow['experienceLevel'],
                             )
                           }
-                        />
-                      </td>
-                    ))}
-                    <td className="px-3 py-2 text-center font-medium bg-gray-50">
-                      {getTotalForRow(row)}
-                    </td>
-                    <td className="px-2 py-2">
-                      {rows.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeRow(row.id)}
-                          className="text-red-600 hover:text-red-800 text-xs"
-                          aria-label="Remove"
                         >
-                          ✕
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                          <option value="JUNIOR">Junior</option>
+                          <option value="MID">Mid</option>
+                          <option value="SENIOR">Senior</option>
+                        </select>
+                      </td>
+                      {intervals.map((iv) => (
+                        <td
+                          key={iv.index}
+                          className="px-1 py-3"
+                          style={{
+                            borderLeft:
+                              iv.index === 0 ? '2px dashed #d1d5db' : undefined,
+                          }}
+                        >
+                          <input
+                            type="text"
+                            className="w-10 h-8 px-1 border border-gray-200 rounded-md text-sm text-center text-gray-700 bg-purple-50/50 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all"
+                            placeholder="0"
+                            value={row.intervalAllocations[iv.index] ?? ''}
+                            onChange={(e) =>
+                              updateIntervalAllocation(
+                                row.id,
+                                iv.index,
+                                Math.max(0, Number(e.target.value) || 0),
+                              )
+                            }
+                          />
+                        </td>
+                      ))}
+                      <td className="px-4 py-3 text-center">
+                        <span
+                          className={`font-semibold text-sm ${rowTotal > 0 ? 'text-purple-700' : 'text-gray-400'}`}
+                        >
+                          {rowTotal}
+                        </span>
+                      </td>
+                      <td className="px-2 py-3">
+                        {rows.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeRow(row.id)}
+                            className="p-1 text-gray-300 hover:text-red-500 rounded transition-colors"
+                            aria-label="Remove row"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={1.5}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                              />
+                            </svg>
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
-              <tfoot className="bg-gray-100">
-                <tr>
+              <tfoot>
+                <tr className="border-t-2 border-gray-100">
                   <td
                     colSpan={4}
-                    className="px-3 py-2 text-right font-medium text-gray-700"
+                    className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider"
                   >
-                    Total
+                    Total Allocation
                   </td>
                   {intervals.map((iv) => (
                     <td
                       key={iv.index}
-                      className="px-2 py-2 text-center font-medium"
+                      className="px-1 py-3 text-center text-sm font-semibold text-gray-700"
+                      style={{
+                        borderLeft:
+                          iv.index === 0 ? '2px dashed #d1d5db' : undefined,
+                      }}
                     >
                       {getTotalForInterval(iv.index)}
                     </td>
                   ))}
-                  <td className="px-3 py-2 text-center font-medium">
-                    {rows.reduce((sum, r) => sum + getTotalForRow(r), 0)}
+                  <td className="px-4 py-3 text-center text-sm font-bold text-purple-700">
+                    {grandTotal}
                   </td>
                   <td />
                 </tr>
@@ -515,15 +653,42 @@ export default function LoadingForm({
             </table>
           </div>
         </div>
-
-        <Button
-          onClick={handleSubmit}
-          isLoading={isLoading}
-          className="w-full bg-purple-600 hover:bg-purple-700"
-        >
-          Generate Allocation Plan
-        </Button>
       </div>
-    </Card>
+
+      {/* Generate Button */}
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={isLoading}
+        className="w-full py-3.5 px-6 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isLoading ? (
+          <span className="inline-flex items-center gap-2">
+            <svg
+              className="animate-spin h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+            Generating...
+          </span>
+        ) : (
+          'Generate Allocation Plan'
+        )}
+      </button>
+    </div>
   );
 }
