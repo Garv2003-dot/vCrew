@@ -157,3 +157,34 @@ export interface AgentConversationContext {
   lastIntent?: any;
   lastAction?: string;
 }
+
+/** Loading table: per-interval resource allocation (e.g. Week 1–12) */
+export interface LoadingInterval {
+  index: number;
+  label: string;
+}
+
+export interface LoadingRow {
+  id: string;
+  roleName: string;
+  primarySkills: string[];
+  secondarySkills: string[];
+  experienceLevel: 'JUNIOR' | 'MID' | 'SENIOR';
+  /** Per-interval allocation: index -> allocationPercent (50=0.5 FTE, 100=1 FTE) */
+  intervalAllocations: Record<number, number>;
+}
+
+export interface LoadingDemand {
+  demandId: string;
+  projectType: 'NEW' | 'EXISTING' | 'GENERAL_DEMAND';
+  projectId?: string;
+  projectName: string;
+  startDate: string;
+  durationMonths: number;
+  /** User-defined intervals (e.g. 12 weeks) */
+  intervalCount: number;
+  intervalLabel?: string;
+  context?: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+  rows: LoadingRow[];
+}

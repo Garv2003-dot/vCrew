@@ -3,15 +3,48 @@ import { Card } from '@repo/ui';
 import {
   MoreVertical,
   ChevronRight,
-  User,
-  Bell,
   Search,
   ArrowUpRight,
   ArrowDownRight,
   Filter,
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ENDPOINTS } from '../../../config/endpoints';
+
+const statusToDisplay: Record<string, { label: string; color: string }> = {
+  ALLOCATED: { label: 'Billable', color: 'bg-blue-400' },
+  PARTIAL: { label: 'Partially Allocated', color: 'bg-amber-400' },
+  BENCH: { label: 'Bench', color: 'bg-yellow-400' },
+  SHADOW: { label: 'Shadow', color: 'bg-gray-400' },
+  ON_LEAVE: { label: 'On Leave', color: 'bg-red-400' },
+};
 
 export default function EmployeesPage() {
+  const [employees, setEmployees] = useState<
+    { id: string; name: string; status: string; role: string; age?: number }[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(ENDPOINTS.EMPLOYEES.LIST)
+      .then((res) => res.json())
+      .then((data: any[]) => {
+        setEmployees(
+          Array.isArray(data)
+            ? data.map((e) => ({
+                id: e.id,
+                name: e.name,
+                status: e.status,
+                role: e.role,
+                age: e.age,
+              }))
+            : [],
+        );
+      })
+      .catch(() => setEmployees([]))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50/50 p-6 flex gap-6 font-sans">
       {/* Main Content Area */}
@@ -188,7 +221,7 @@ export default function EmployeesPage() {
                 Current Employee Listing
               </h2>
               <span className="px-2 py-0.5 rounded text-xs font-bold bg-white border border-gray-200 text-gray-600 shadow-sm">
-                595
+                {employees.length}
               </span>
             </div>
             <MoreVertical className="w-4 h-4 text-gray-400 cursor-pointer" />
@@ -204,39 +237,49 @@ export default function EmployeesPage() {
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-gray-50">
-              {DUMMY_EMPLOYEES.map((emp, i) => (
-                <tr
-                  key={i}
-                  className="group hover:bg-gray-50/60 transition-colors"
-                >
-                  <td className="px-6 py-4 font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">
-                    {emp.name}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`w-2 h-2 rounded-full ring-2 ring-white ${
-                          emp.statusColor || 'bg-blue-400'
-                        }`}
-                      ></span>
-                      <span className="text-gray-600 font-medium text-xs">
-                        {emp.status}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="px-2.5 py-1 rounded bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-wide border border-gray-200">
-                      Badge
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-gray-500 text-xs font-medium">
-                    Text
-                  </td>
-                  <td className="px-6 py-4 text-gray-500 text-xs font-medium">
-                    Text
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                    Loading employees...
                   </td>
                 </tr>
-              ))}
+              ) : (
+                employees.map((emp) => {
+                  const statusInfo =
+                    statusToDisplay[emp.status] || statusToDisplay.BENCH;
+                  return (
+                    <tr
+                      key={emp.id}
+                      className="group hover:bg-gray-50/60 transition-colors"
+                    >
+                      <td className="px-6 py-4 font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">
+                        {emp.name}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`w-2 h-2 rounded-full ring-2 ring-white ${statusInfo.color}`}
+                          />
+                          <span className="text-gray-600 font-medium text-xs">
+                            {statusInfo.label}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="px-2.5 py-1 rounded bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-wide border border-gray-200">
+                          {emp.role}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-gray-500 text-xs font-medium">
+                        {emp.age ?? '—'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-500 text-xs font-medium">
+                        —
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
           <div className="px-6 py-3 border-t border-gray-50 bg-gray-50/50 flex items-center gap-1 text-xs text-gray-400 font-medium">
@@ -248,20 +291,6 @@ export default function EmployeesPage() {
     </div>
   );
 }
-
-// Stats & Data
-const DUMMY_EMPLOYEES = [
-  { name: 'Fiona Patel', status: 'Billable', statusColor: 'bg-blue-400' },
-  { name: 'Shristi Garg', status: 'Billable', statusColor: 'bg-blue-400' },
-  { name: 'Sam Prince', status: 'Billable', statusColor: 'bg-blue-400' },
-  { name: 'Greg Tahlia', status: 'Billable', statusColor: 'bg-blue-400' },
-  { name: 'James Bond', status: 'Billable', statusColor: 'bg-blue-400' },
-  { name: 'Mike Craig', status: 'Bench', statusColor: 'bg-yellow-400' },
-  { name: 'Nam Neilson', status: 'Online', statusColor: 'bg-green-500' },
-  { name: 'John Chaudhary', status: 'Billable', statusColor: 'bg-blue-400' },
-  { name: 'Parul Mehta', status: 'Online', statusColor: 'bg-green-500' },
-  { name: 'Brent Singh', status: 'Bench', statusColor: 'bg-yellow-400' },
-];
 
 const NOTIFICATIONS = [
   {

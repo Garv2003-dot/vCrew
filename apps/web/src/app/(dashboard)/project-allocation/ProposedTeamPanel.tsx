@@ -34,7 +34,7 @@ export default function ProposedTeamPanel({
         <div className="flex items-center gap-2">
           {onUndo && (
             <Button
-              variant="outline"
+              variant="secondary"
               onClick={onUndo}
               disabled={!canUndo}
               className="text-sm"

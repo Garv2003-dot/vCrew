@@ -1,8 +1,9 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Input } from '@repo/ui';
 import { ProjectDemand } from '@repo/types';
-
-import { mockProjects } from '@repo/api/src/data/mockProjects';
+import { ENDPOINTS } from '../../../config/endpoints';
 
 const ROLE_OPTIONS = [
   'Frontend Developer',
@@ -60,6 +61,7 @@ export default function ProjectRequirementsForm({
     initialValues.resourceDescription || '',
   );
 
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [roleRows, setRoleRows] = useState<RoleRow[]>(() => {
     const roles = initialValues.roles || [];
     if (roles.length > 0) {
@@ -74,6 +76,15 @@ export default function ProjectRequirementsForm({
     }
     return []; // No default row – primary path is resourceDescription; add rows via "+ Add role"
   });
+
+  useEffect(() => {
+    fetch(ENDPOINTS.PROJECTS.LIST)
+      .then((res) => res.json())
+      .then((data: { id: string; name: string }[]) =>
+        setProjects(Array.isArray(data) ? data : []),
+      )
+      .catch(() => setProjects([]));
+  }, []);
 
   useEffect(() => {
     if (!demandId) {
@@ -123,8 +134,7 @@ export default function ProjectRequirementsForm({
   const handleSubmit = () => {
     const finalProjectName =
       projectType === 'EXISTING'
-        ? mockProjects.find((p) => p.projectId === selectedProjectId)
-            ?.projectName || ''
+        ? projects.find((p) => p.id === selectedProjectId)?.name || ''
         : projectNameInput ||
           (projectType === 'GENERAL_DEMAND' ? 'General Demand' : '');
 
@@ -238,9 +248,9 @@ export default function ProjectRequirementsForm({
                     onChange={(e) => setSelectedProjectId(e.target.value)}
                   >
                     <option value="">-- Select Existing Project --</option>
-                    {mockProjects.map((p) => (
-                      <option key={p.projectId} value={p.projectId}>
-                        {p.projectName}
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
                       </option>
                     ))}
                   </select>

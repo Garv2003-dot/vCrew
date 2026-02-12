@@ -1,8 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-// Assuming @repo/ui and @repo/types are available in your monorepo
 import { Card, Button } from '@repo/ui';
-import { Employee } from '@repo/types';
 import { ENDPOINTS } from '../../../config/endpoints';
 
 // --- MOCK SVG ICONS ---
@@ -60,56 +58,44 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulating fetch with mock data for Alice Johnson (ID: 1)
-    const aliceData = {
-      id: '1',
-      name: 'Alice Johnson',
-      role: 'Senior Frontend Dev',
-      age: 32,
-      gender: 'Female',
-      mobile: '+1-555-0101',
-      email: 'alice.johnson@example.com',
-      address: '123 Oak Street, Apt 4',
-      state: 'California',
-      pincode: '94102',
-      department: 'IT', // Mock data didn't have department, keeping IT
-      employeeId: '123456', // Mock data ID is '1', but keeping 123456 for display if preferred? Let's use mock ID '1' or keep placeholder if requested. User said "map data... from first employee". Mock has id '1'. Let's use ID '1' or keep it simple. I will use '1'.
-      about:
-        'Passionate about building accessible and performant web applications. Strong advocate for clean code and design systems.', // From description
-      workExperience: [
-        {
-          id: 1,
-          company: 'TechCorp',
-          url: 'https://techcorp.com',
-          title: 'Frontend Developer',
-          from: '2019-03',
-          to: '2021-06',
-          cert: 'certificate.png',
-        },
-        {
-          id: 2,
-          company: 'WebScale Inc',
-          url: 'https://webscale.io',
-          title: 'Senior Frontend Dev',
-          from: '2021-07',
-          to: 'Present',
-          cert: 'certificate3.png',
-        },
-      ],
-      techStack: ['React', 'TypeScript', 'Tailwind'], // From skills
-      projects: [
-        { id: 'proj-001', name: 'Rhapsody', logo: '/logos/rhapsody-logo.png' },
-        { id: 'proj-002', name: 'Neovance', logo: '/logos/neovance-logo.jpeg' },
-        { id: 'proj-003', name: 'Valeris', logo: '/logos/valeris-logo.jpeg' },
-      ],
-    };
-
-    setProfileData({
-      ...aliceData,
-      employeeId: aliceData.id,
-      jobTitle: aliceData.role,
-    });
-    setLoading(false);
+    fetch(ENDPOINTS.EMPLOYEES.ME)
+      .then((res) => res.json())
+      .then((emp: any) => {
+        if (!emp?.id) throw new Error('No employee data');
+        setProfileData({
+          id: emp.id,
+          name: emp.name,
+          role: emp.role,
+          jobTitle: emp.role,
+          age: emp.age,
+          gender: emp.gender,
+          mobile: emp.mobile,
+          email: emp.email,
+          address: emp.address,
+          state: emp.state,
+          pincode: emp.pincode,
+          department: 'IT',
+          employeeId: emp.id,
+          about: emp.description || '',
+          workExperience: (emp.workExperience || []).map((e: any, i: number) => ({
+            id: i + 1,
+            company: e.companyName,
+            url: e.companyUrl,
+            title: e.jobTitle,
+            from: e.startDate?.slice(0, 7) || '',
+            to: e.endDate?.slice(0, 7) || 'Present',
+            cert: 'certificate.png',
+          })),
+          techStack: (emp.skills || []).map((s: any) => s.name),
+          projects: (emp.currentProjects || []).map((p: any) => ({
+            id: p.projectId,
+            name: p.projectName || p.roleName,
+            logo: p.projectLogo || '/logos/rhapsody-logo.png',
+          })),
+        });
+      })
+      .catch(() => setProfileData(null))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading)

@@ -10,12 +10,14 @@ interface AIAssistantPanelProps {
   messages: ChatMessage[];
   onSendMessage: (message: string) => void;
   isThinking: boolean;
+  className?: string;
 }
 
 export default function AIAssistantPanel({
   messages,
   onSendMessage,
   isThinking,
+  className = '',
 }: AIAssistantPanelProps) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -35,7 +37,7 @@ export default function AIAssistantPanel({
   };
 
   return (
-    <Card title="AI Assistant" className="h-full flex flex-col">
+    <Card title="" className={`h-full flex flex-col ${className}`}>
       <div className="flex-1 overflow-y-auto space-y-4 mb-4 p-2 border rounded-md bg-gray-50 max-h-[calc(100vh-250px)]">
         {messages.map((msg, idx) => (
           <div
