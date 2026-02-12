@@ -7,6 +7,7 @@ export const ENDPOINTS = {
   },
   ALLOCATION: {
     DEMAND: `${API_BASE_URL}/allocation/demand`,
+    LOADING_DEMAND: `${API_BASE_URL}/allocation/loading-demand`,
     INSTRUCTION: `${API_BASE_URL}/allocation/instruction`,
   },
   PROJECTS: {

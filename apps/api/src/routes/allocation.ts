@@ -1,28 +1,75 @@
 import { Router } from 'express';
-import { ProjectDemand } from '@repo/types';
+import { ProjectDemand, LoadingDemand } from '@repo/types';
 import { generateAllocation, processAgentInstruction } from '@repo/ai-service';
-import { mockEmployees } from '../data/mockEmployees';
-import { mockProjects } from '../data/mockProjects';
+import { fetchEmployeesFromSupabase } from '../services/employeesService';
+import { fetchProjectsFromSupabase } from '../services/projectsService';
+import { ensureDemandRoles } from '../utils/parseResourceDescription';
 
 export const allocationRoutes = Router();
+
+async function getAllocationData() {
+  const [employees, projects] = await Promise.all([
+    fetchEmployeesFromSupabase(),
+    fetchProjectsFromSupabase(),
+  ]);
+  return { employees, projects };
+}
+
+/** Convert LoadingDemand to ProjectDemand (aggregate by role for AI; per-interval AI can be extended later) */
+function loadingToProjectDemand(loading: LoadingDemand): ProjectDemand {
+  const roles = loading.rows.map((row) => {
+    const total = Object.values(row.intervalAllocations).reduce((a, b) => a + b, 0);
+    const headcount = Math.max(1, Math.ceil(total / 100));
+    return {
+      roleName: row.roleName,
+      requiredSkills: (row.primarySkills || []).map((name, i) => ({
+        skillId: `s-${i}`,
+        name,
+        minimumProficiency: 3 as 1 | 2 | 3 | 4 | 5,
+      })),
+      experienceLevel: row.experienceLevel,
+      allocationPercent: 100,
+      headcount,
+    };
+  });
+
+  return {
+    demandId: loading.demandId,
+    projectType: 'NEW',
+    projectName: loading.projectName,
+    priority: loading.priority,
+    startDate: loading.startDate,
+    durationMonths: loading.durationMonths,
+    context: loading.context,
+    roles,
+  };
+}
 
 allocationRoutes.post('/demand', async (req, res) => {
   try {
     const demand: ProjectDemand = req.body;
+    const normalizedDemand = ensureDemandRoles(demand);
+    const { employees, projects } = await getAllocationData();
 
-    const projects = mockProjects.map((p) => ({
-      id: p.projectId,
-      name: p.projectName,
-      description: `Client: ${p.client}`,
-      startDate: p.startDate,
-      durationMonths: 6, // Approximate or calculate
-      status: p.status as 'PLANNED' | 'ACTIVE' | 'COMPLETED',
-      assignedEmployees: p.assignedEmployees,
-    }));
-
-    const proposal = await generateAllocation(demand, mockEmployees, projects);
+    const proposal = await generateAllocation(normalizedDemand, employees, projects);
 
     res.json(proposal);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: `Failed to generate allocation: ${err instanceof Error ? err.message : String(err)}`,
+    });
+  }
+});
+
+allocationRoutes.post('/loading-demand', async (req, res) => {
+  try {
+    const loading: LoadingDemand = req.body;
+    const demand = loadingToProjectDemand(loading);
+    const { employees, projects } = await getAllocationData();
+
+    const proposal = await generateAllocation(demand, employees, projects);
+    res.json({ ...proposal, loadingContext: loading });
   } catch (err) {
     console.error(err);
     res.status(500).json({
@@ -42,19 +89,11 @@ allocationRoutes.post('/instruction', async (req, res) => {
         .json({ error: 'Missing message or original demand' });
     }
 
-    const projects = mockProjects.map((p) => ({
-      id: p.projectId,
-      name: p.projectName,
-      description: `Client: ${p.client}`,
-      startDate: p.startDate,
-      durationMonths: 6,
-      status: p.status as 'PLANNED' | 'ACTIVE' | 'COMPLETED',
-      assignedEmployees: p.assignedEmployees,
-    }));
+    const { employees, projects } = await getAllocationData();
 
     const result = await processAgentInstruction(
       message,
-      mockEmployees,
+      employees,
       currentProposal || null,
       demand,
       conversation || [],

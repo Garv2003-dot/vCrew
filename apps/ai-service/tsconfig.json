@@ -2,6 +2,7 @@
   "extends": "@repo/config/tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "outDir": "dist",
     "paths": {
       "@repo/types": ["packages/types/src"],
       "@repo/ai-service": ["apps/ai-service/src"]

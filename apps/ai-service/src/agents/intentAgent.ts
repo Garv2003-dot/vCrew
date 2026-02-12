@@ -1,4 +1,4 @@
-import { callOllama } from '../clients/ollamaClient';
+import { callGemini } from '../clients/geminiClient';
 
 export interface AllocationIntent {
   intentType:
@@ -26,6 +26,9 @@ export interface AllocationIntent {
 
   // Incremental update flag
   incremental?: boolean | null;
+
+  // Flag for when user asks AI to decide count
+  autoSuggestCount?: boolean;
 }
 
 export async function extractAllocationIntent(
@@ -51,6 +54,7 @@ Rules:
 - If identifying a replacement target (e.g. "Replace Bob"), put "Bob" in targetEmployeeName.
 - **CONTEXT MATTERS:** Look at the conversation history. If the user says "add one more", check previous messages to know WHAT to add.
 - If the user uses words like: "more", "another", "additional", "one more", Set "incremental": true.
+- If the user asks YOU to decide the number (e.g., "decide count", "as needed", "appropriate number", "suggest count"), set "autoSuggestCount": true.
 
 Distinguish carefully:
 - "Create", "New", "Generate", "I need team for..." -> CREATE_ALLOCATION
@@ -81,7 +85,8 @@ Intent Schema:
       "count": number
     }
   ] | null,
-  "incremental": boolean | null
+  "incremental": boolean | null,
+  "autoSuggestCount": boolean | null
 }
 
 Conversation History:
@@ -90,7 +95,7 @@ ${historyContext}
 User Message: "${userMessage}"
 `;
 
-  const raw = await callOllama(prompt);
+  const raw = await callGemini(prompt);
 
   try {
     let jsonStr = raw;
@@ -116,6 +121,10 @@ User Message: "${userMessage}"
       roles: Array.isArray(parsed.roles) ? parsed.roles : undefined,
       incremental:
         typeof parsed.incremental === 'boolean' ? parsed.incremental : null,
+      autoSuggestCount:
+        typeof parsed.autoSuggestCount === 'boolean'
+          ? parsed.autoSuggestCount
+          : undefined,
     };
   } catch (error) {
     console.error('Failed to parse intent JSON', error);
@@ -128,6 +137,7 @@ User Message: "${userMessage}"
       employeeCount: null,
       constraints: null,
       roles: undefined,
+      autoSuggestCount: undefined,
     };
   }
 }

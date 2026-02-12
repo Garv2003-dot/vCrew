@@ -6,7 +6,7 @@ import {
   CanonicalProjectDemand,
   DemandChangeLog,
 } from '@repo/types';
-import { callOllama } from '../clients/ollamaClient';
+import { callGemini } from '../clients/geminiClient';
 import { extractAllocationIntent } from './intentAgent';
 
 const ROLE_SYNONYMS: Record<string, string[]> = {
@@ -204,7 +204,7 @@ Rules:
 `;
 
   try {
-    const raw = await callOllama(prompt);
+    const raw = await callGemini(prompt);
     console.log('[DEBUG] AI Ranking RAW:', raw);
 
     const start = raw.indexOf('{');
@@ -234,19 +234,26 @@ Rules:
       );
     }
 
-    // 1️⃣ Enforce ranking output schema strictly
+    // 1️⃣ Enforce ranking output schema: employeeId string, confidence number or string (LLM may return "1.0")
     if (
       !parsed.rankedCandidates.every(
         (r: any) =>
-          typeof r.employeeId === 'string' && typeof r.confidence === 'number',
+          typeof r.employeeId === 'string' &&
+          (typeof r.confidence === 'number' ||
+            (typeof r.confidence === 'string' &&
+              !Number.isNaN(Number(r.confidence)))),
       )
     ) {
       throw new Error('Invalid ranking payload: schema mismatch');
     }
 
-    // 🛡️ Post-AI Validation
+    // 🛡️ Post-AI Validation + normalize confidence to number
     const seen = new Set<string>();
-    const validated = [];
+    const validated: {
+      employeeId: string;
+      confidence: number;
+      reason: string;
+    }[] = [];
     const validIds = new Set(candidates.map((c) => c.id));
 
     for (const r of parsed.rankedCandidates) {
@@ -255,7 +262,15 @@ Rules:
         !seen.has(r.employeeId) // Must not be a duplicate
       ) {
         seen.add(r.employeeId);
-        validated.push(r);
+        const confidence =
+          typeof r.confidence === 'number'
+            ? r.confidence
+            : Math.min(1, Math.max(0, Number(r.confidence)));
+        validated.push({
+          employeeId: r.employeeId,
+          confidence,
+          reason: typeof r.reason === 'string' ? r.reason : 'Ranked by AI',
+        });
       }
     }
 
@@ -400,6 +415,46 @@ export async function generateAllocation(
   };
 }
 
+// Helper to determine headcount dynamically
+async function recommendHeadcount(
+  roleName: string,
+  currentProposal: AllocationProposal,
+  originalDemand: ProjectDemand,
+): Promise<number> {
+  console.log(`[DEBUG] Recommending headcount for ${roleName}`);
+
+  const currentAllocationSummary = currentProposal.roleAllocations
+    .map((r) => `${r.roleName}: ${r.recommendations.length}`)
+    .join(', ');
+
+  const prompt = `
+You are a resource planning expert.
+Project: ${originalDemand.projectName}
+Type: ${originalDemand.projectType}
+Context: ${originalDemand.context || 'None'}
+Current Allocation: ${currentAllocationSummary || 'None'}
+
+User wants to add: "${roleName}".
+Decide the appropriate number of "${roleName}" resources to add.
+
+Rules:
+- Analyze standard ratios (e.g., 1 QA per 3-4 Devs, 1 DevOps per project or per 5-10 Devs).
+- Consider project context.
+- Returns ONLY the integer number.
+- Default to 1 if unsure or if the request implies a single resource (e.g., "add a devops").
+- Be conservative. Do not add too many unless strictly necessary.
+`;
+
+  try {
+    const raw = await callGemini(prompt);
+    const num = Number.parseInt(raw.trim(), 10);
+    return Number.isNaN(num) ? 1 : num;
+  } catch (e) {
+    console.error('Failed to recommend headcount', e);
+    return 1;
+  }
+}
+
 // Helper for ADD_EMPLOYEES logic
 async function handleAddEmployees(
   intent: any,
@@ -443,7 +498,18 @@ async function handleAddEmployees(
     const messages: string[] = [];
 
     for (const req of roleRequests) {
-      const { roleName, count } = req;
+      const { roleName } = req;
+      let { count } = req;
+
+      // Dynamic Headcount Logic
+      if (intent.autoSuggestCount) {
+        count = await recommendHeadcount(
+          roleName,
+          updatedProposal,
+          originalDemand,
+        );
+        messages.push(`(AI suggested adding ${count} ${roleName}(s))`);
+      }
 
       const result = await handleAddSingleRole(
         roleName,
