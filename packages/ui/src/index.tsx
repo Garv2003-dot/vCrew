@@ -275,12 +275,14 @@ export const Header = ({
   onLogout,
   onToggleSidebar,
   onToggleNotifications,
+  logoUrl,
 }: {
   title: string;
   user?: { name: string };
   onLogout?: () => void;
   onToggleSidebar: () => void;
   onToggleNotifications: () => void;
+  logoUrl?: string;
 }) => {
   return (
     // Fixed to the top, spanning full width with a high z-index
@@ -313,13 +315,25 @@ export const Header = ({
           </button>
 
           {/* Brand Logo - border-r creates the separator line */}
-          <div className="flex items-center gap-2 border-r border-gray-200 pr-4 flex-1 min-w-0">
-            <div className="w-7 h-7 bg-indigo-600 rounded flex items-center justify-center font-bold text-white text-sm shadow-sm shrink-0">
-              V
-            </div>
-            <span className="font-bold text-xl text-gray-900 tracking-tight hidden sm:block truncate">
-              vCrew
-            </span>
+          <div className="flex items-center border-r border-gray-200 pr-4 flex-1 min-w-0">
+            {logoUrl ? (
+              <a href="/" className="flex items-center">
+                <img
+                  src={logoUrl}
+                  alt="vCrew"
+                  className="h-8 w-auto object-contain"
+                />
+              </a>
+            ) : (
+              <>
+                <div className="w-7 h-7 bg-indigo-600 rounded flex items-center justify-center font-bold text-white text-sm shadow-sm shrink-0">
+                  V
+                </div>
+                <span className="font-bold text-xl text-gray-900 tracking-tight hidden sm:block truncate ml-2">
+                  vCrew
+                </span>
+              </>
+            )}
           </div>
         </div>
 
@@ -424,6 +438,7 @@ export const Layout = ({
   title,
   user,
   onLogout,
+  logoUrl,
 }: {
   children: React.ReactNode;
   sidebarItems: { label: string; href: string; icon?: React.ElementType }[];
@@ -431,6 +446,7 @@ export const Layout = ({
   title: string;
   user?: { name: string };
   onLogout?: () => void;
+  logoUrl?: string;
 }) => {
   // Centralized layout state for the hamburger menu
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -451,6 +467,7 @@ export const Layout = ({
         onLogout={onLogout}
         onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
         onToggleNotifications={() => setNotificationOpen(true)}
+        logoUrl={logoUrl}
       />
 
       <NotificationDrawer

@@ -95,9 +95,10 @@ export default function DashboardLayout({
     <Layout
       sidebarItems={sidebarItems}
       pathname={pathname}
-      title="Your Profile" // This feeds the top-left context pill in the Header
+      title="Your Profile"
       user={user}
       onLogout={logout}
+      logoUrl="/vcrew-logo.png"
     >
       {children}
     </Layout>
