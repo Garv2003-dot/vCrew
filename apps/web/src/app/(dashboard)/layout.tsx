@@ -1,10 +1,10 @@
-"use client";
+'use client';
 // Deep Code: Notice we only import Layout now.
 // Header and Sidebar are abstracted away internally by the UI library.
-import { Layout } from "@repo/ui";
-import { usePathname, useRouter } from "next/navigation";
-import { useAuth } from "../../context/auth-context";
-import { useEffect } from "react";
+import { Layout } from '@repo/ui';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '../../context/auth-context';
+import { useEffect } from 'react';
 
 // --- MOCK ICONS ---
 // Since Heroicons aren't installed, we use simple SVG functional components.
@@ -56,9 +56,9 @@ const BriefcaseIcon = (props: any) => (
 );
 
 const sidebarItems = [
-  { label: "Dashboard", href: "/profile", icon: DashboardIcon },
-  { label: "Employees", href: "/employees", icon: UsersIcon },
-  { label: "Allocations", href: "/project-allocation", icon: BriefcaseIcon },
+  { label: 'Dashboard', href: '/profile', icon: DashboardIcon },
+  { label: 'Employees', href: '/employees', icon: UsersIcon },
+  { label: 'Allocations', href: '/project-allocation', icon: BriefcaseIcon },
 ];
 
 export default function DashboardLayout({
@@ -70,9 +70,27 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
 
+  const getBreadcrumb = (path: string) => {
+    // Map paths to readable names
+    if (path === '/project-allocation') return 'Allocations';
+    if (path === '/employees') return 'Employees';
+    if (path === '/profile') return 'Dashboard';
+
+    // Fallback: capitalize logical segments
+    const segments = path.split('/').filter(Boolean);
+    if (segments.length > 0) {
+      const last = segments[segments.length - 1];
+      return last.charAt(0).toUpperCase() + last.slice(1);
+    }
+
+    return 'Dashboard';
+  };
+
+  const breadcrumb = getBreadcrumb(pathname);
+
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push("/login");
+      router.push('/login');
     }
   }, [isLoading, user, router]);
 
@@ -80,7 +98,7 @@ export default function DashboardLayout({
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
         {/* Swapped basic text for a cleaner loading spinner */}
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
@@ -95,7 +113,11 @@ export default function DashboardLayout({
     <Layout
       sidebarItems={sidebarItems}
       pathname={pathname}
-      title="Your Profile"
+      title={
+        <span className="flex items-center gap-2 text-sm font-medium text-gray-500">
+          <span className="text-blue-600 font-semibold">{breadcrumb}</span>
+        </span>
+      }
       user={user}
       onLogout={logout}
       logoUrl="/vcrew-logo.png"

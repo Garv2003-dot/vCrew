@@ -74,12 +74,12 @@ export default function ProposedTeamPanel({
               >
                 <div className="flex justify-between items-center">
                   <div className="flex items-center">
-                    <span className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-3">
+                    <span className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold mr-3">
                       {rec.employeeName.charAt(0)}
                     </span>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-indigo-600">
+                        <p className="text-sm font-medium text-blue-600">
                           {rec.employeeName}
                         </p>
                         {rec.status === 'EXISTING' && (

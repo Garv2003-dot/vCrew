@@ -14,7 +14,8 @@
     "express": "^4.18.0",
     "cors": "^2.8.5",
     "@repo/types": "*",
-    "@repo/ai-service": "*"
+    "google/genai": "*",
+    "dotenv": "^16.0.0"
   },
   "devDependencies": {
     "@repo/config": "*",

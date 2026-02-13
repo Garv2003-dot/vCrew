@@ -46,7 +46,7 @@ export default function AIAssistantPanel({
 
   return (
     <div
-      className={`flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 ${className}`}
+      className={`flex flex-col bg-gradient-to-b from-white to-blue-100 rounded-2xl shadow-sm border border-gray-100 ${className}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
@@ -69,9 +69,9 @@ export default function AIAssistantPanel({
         {messages.map((msg, idx) => (
           <div key={idx} className="flex gap-2.5 items-start">
             {msg.role === 'assistant' && (
-              <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
                 <svg
-                  className="w-4 h-4 text-purple-600"
+                  className="w-4 h-4 text-blue-600"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -88,7 +88,7 @@ export default function AIAssistantPanel({
             <div
               className={`text-sm leading-relaxed max-w-[85%] ${
                 msg.role === 'user'
-                  ? 'ml-auto bg-purple-600 text-white px-4 py-2.5 rounded-2xl rounded-br-sm'
+                  ? 'ml-auto bg-blue-600 text-white px-4 py-2.5 rounded-2xl rounded-br-sm'
                   : 'text-gray-700'
               }`}
             >
@@ -107,7 +107,7 @@ export default function AIAssistantPanel({
                   key={chip}
                   type="button"
                   onClick={() => handleSend(chip)}
-                  className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-full hover:bg-purple-50 hover:border-purple-200 hover:text-purple-700 transition-all"
+                  className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-full hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-all"
                 >
                   {chip}
                 </button>
@@ -117,9 +117,9 @@ export default function AIAssistantPanel({
 
         {isThinking && (
           <div className="flex gap-2.5 items-start">
-            <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
+            <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
               <svg
-                className="w-4 h-4 text-purple-600"
+                className="w-4 h-4 text-blue-600"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -133,13 +133,13 @@ export default function AIAssistantPanel({
               </svg>
             </div>
             <div className="flex items-center gap-1.5 py-2">
-              <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" />
+              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" />
               <div
-                className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce"
+                className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"
                 style={{ animationDelay: '0.15s' }}
               />
               <div
-                className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce"
+                className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"
                 style={{ animationDelay: '0.3s' }}
               />
             </div>
@@ -150,7 +150,7 @@ export default function AIAssistantPanel({
 
       {/* Input */}
       <div className="px-4 pb-4 pt-2">
-        <div className="flex items-center gap-2 bg-gray-50 rounded-full pl-4 pr-1.5 py-1.5 border border-gray-200 focus-within:border-purple-300 focus-within:ring-2 focus-within:ring-purple-100 transition-all">
+        <div className="flex items-center gap-2 bg-gray-50 rounded-full pl-4 pr-1.5 py-1.5 border border-gray-200 focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
           <input
             type="text"
             placeholder="Type a message..."
@@ -164,7 +164,7 @@ export default function AIAssistantPanel({
             type="button"
             onClick={() => handleSend()}
             disabled={isThinking || !inputValue.trim()}
-            className="w-8 h-8 rounded-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center transition-colors disabled:opacity-40 shrink-0"
+            className="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition-colors disabled:opacity-40 shrink-0"
             aria-label="Send message"
           >
             <svg

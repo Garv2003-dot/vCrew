@@ -215,7 +215,7 @@ export default function ProjectAllocationPage() {
                   onClick={() => setDemandMode('simple')}
                   className={`px-4 py-2 text-sm font-medium rounded-md transition ${
                     demandMode === 'simple'
-                      ? 'bg-purple-100 text-purple-700'
+                      ? 'bg-blue-100 text-blue-700'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   }`}
                 >
@@ -226,7 +226,7 @@ export default function ProjectAllocationPage() {
                   onClick={() => setDemandMode('loading')}
                   className={`px-4 py-2 text-sm font-medium rounded-md transition ${
                     demandMode === 'loading'
-                      ? 'bg-purple-100 text-purple-700'
+                      ? 'bg-blue-100 text-blue-700'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   }`}
                 >

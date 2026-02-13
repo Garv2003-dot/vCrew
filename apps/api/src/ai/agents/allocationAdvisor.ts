@@ -131,7 +131,7 @@ function resolveCandidates(
   requiredSkills: string[],
   employees: Employee[],
 ): Employee[] {
-  return employees.filter((e) => {
+  const filtered = employees.filter((e) => {
     // 1. Availability constraint
     if (e.availabilityPercent < 20) return false;
 
@@ -167,6 +167,7 @@ function resolveCandidates(
 
     return reqSkillsLower.some((req) => employeeSkills.has(req));
   });
+  return filtered;
 }
 
 // 2️⃣ Rank Candidates with AI (Validated)
@@ -205,7 +206,6 @@ Rules:
 
   try {
     const raw = await callGemini(prompt);
-    console.log('[DEBUG] AI Ranking RAW:', raw);
 
     const start = raw.indexOf('{');
     const end = raw.lastIndexOf('}');
@@ -292,8 +292,6 @@ export async function generateAllocation(
   employees: Employee[],
   projects: Project[] = [],
 ): Promise<AllocationProposal> {
-  console.log('[DEBUG] generateAllocation (Refactored) called');
-
   // 1. Normalize Demand (Adapter Pattern)
   // This handles merging existing projects, open roles, and preventing drift
   const demand = normalizeProjectDemand(rawDemand, projects);
@@ -816,9 +814,35 @@ export async function processAgentInstruction(
   // 2. Route Logic
   switch (intent.intentType) {
     case 'CREATE_ALLOCATION': {
+      let finalDemand = { ...state.demand };
+
+      // Override roles from Intent if present
+      if (intent.roles && intent.roles.length > 0) {
+        finalDemand.roles = intent.roles.map((r) => ({
+          roleName: r.roleName,
+          headcount: r.count,
+          requiredSkills: [], // resolveCandidates handles basic role matching without strict skills if needed
+          experienceLevel: intent.experienceLevel || 'MID',
+          allocationPercent: 100,
+        }));
+      } else if (intent.role) {
+        const roleName = Array.isArray(intent.role)
+          ? intent.role[0]
+          : intent.role;
+        finalDemand.roles = [
+          {
+            roleName: roleName,
+            headcount: intent.employeeCount || 1,
+            requiredSkills: [],
+            experienceLevel: intent.experienceLevel || 'MID',
+            allocationPercent: 100,
+          },
+        ];
+      }
+
       return {
         proposal: await generateAllocation(
-          state.demand,
+          finalDemand,
           state.employees,
           state.projects,
         ),

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { ProjectDemand, LoadingDemand } from '@repo/types';
-import { generateAllocation, processAgentInstruction } from '@repo/ai-service';
+import { generateAllocation, processAgentInstruction } from '../ai';
 import { fetchEmployeesFromSupabase } from '../services/employeesService';
 import { fetchProjectsFromSupabase } from '../services/projectsService';
 import { ensureDemandRoles } from '../utils/parseResourceDescription';

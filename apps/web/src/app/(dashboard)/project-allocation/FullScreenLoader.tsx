@@ -27,12 +27,12 @@ export default function FullScreenLoader() {
       <div className="relative flex flex-col items-center p-8 bg-white rounded-2xl shadow-2xl border border-purple-100 max-w-md w-full mx-4">
         {/* Animated AI Brain/Spinner */}
         <div className="relative w-24 h-24 mb-8">
-          <div className="absolute inset-0 rounded-full border-4 border-purple-100 animate-pulse"></div>
-          <div className="absolute inset-0 rounded-full border-4 border-t-purple-600 border-r-transparent border-b-purple-600 border-l-transparent animate-spin"></div>
-          <div className="absolute inset-4 rounded-full border-4 border-t-transparent border-r-indigo-500 border-b-transparent border-l-indigo-500 animate-spin-reverse"></div>
+          <div className="absolute inset-0 rounded-full border-4 border-blue-100 animate-pulse"></div>
+          <div className="absolute inset-0 rounded-full border-4 border-t-blue-600 border-r-transparent border-b-blue-600 border-l-transparent animate-spin"></div>
+          <div className="absolute inset-4 rounded-full border-4 border-t-transparent border-r-cyan-500 border-b-transparent border-l-cyan-500 animate-spin-reverse"></div>
           <div className="absolute inset-0 flex items-center justify-center">
             <svg
-              className="w-10 h-10 text-purple-600 animate-pulse"
+              className="w-10 h-10 text-blue-600 animate-pulse"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -49,7 +49,7 @@ export default function FullScreenLoader() {
 
         {/* Text Content */}
         <div className="text-center space-y-3">
-          <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
+          <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-600">
             AI is thinking
           </h3>
           <div className="h-6 overflow-hidden">
@@ -61,7 +61,7 @@ export default function FullScreenLoader() {
 
         {/* Progress Bar */}
         <div className="w-full h-1 bg-gray-100 rounded-full mt-8 overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 animate-progress origin-left w-full"></div>
+          <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 animate-progress origin-left w-full"></div>
         </div>
       </div>
 

@@ -19,9 +19,9 @@ export const Button = ({
 
   const variants = {
     primary:
-      'border-transparent text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500',
+      'border-transparent text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-500',
     secondary:
-      'border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:ring-indigo-500',
+      'border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:ring-blue-500',
     danger:
       'border-transparent text-white bg-red-600 hover:bg-red-700 focus:ring-red-500',
     ghost:
@@ -76,7 +76,7 @@ export const Input = ({ label, error, className, ...props }: InputProps) => {
         </label>
       )}
       <input
-        className={`appearance-none block w-full px-3 py-2 border ${error ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition duration-150 ease-in-out`}
+        className={`appearance-none block w-full px-3 py-2 border ${error ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out`}
         {...props}
       />
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
@@ -242,7 +242,7 @@ const NotificationDrawer = ({
                       {item.msg}
                     </p>
                   </div>
-                  <div className="self-center text-gray-400 group-hover:text-indigo-500 transition-colors">
+                  <div className="self-center text-gray-400 group-hover:text-blue-500 transition-colors">
                     <svg
                       className="w-5 h-5"
                       fill="none"
@@ -264,7 +264,7 @@ const NotificationDrawer = ({
 
           {/* Footer */}
           <div className="p-4 border-t border-gray-200/50 bg-white/30 text-center">
-            <button className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors">
+            <button className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
               View all notifications
             </button>
           </div>
@@ -282,7 +282,7 @@ export const Header = ({
   onToggleNotifications,
   logoUrl,
 }: {
-  title: string;
+  title: React.ReactNode;
   user?: { name: string };
   onLogout?: () => void;
   onToggleSidebar: () => void;
@@ -301,7 +301,7 @@ export const Header = ({
         >
           <button
             onClick={onToggleSidebar}
-            className="p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
             aria-label="Toggle sidebar"
           >
             <svg
@@ -331,7 +331,7 @@ export const Header = ({
               </a>
             ) : (
               <>
-                <div className="w-7 h-7 bg-indigo-600 rounded flex items-center justify-center font-bold text-white text-sm shadow-sm shrink-0">
+                <div className="w-7 h-7 bg-blue-600 rounded flex items-center justify-center font-bold text-white text-sm shadow-sm shrink-0">
                   V
                 </div>
                 <span className="font-bold text-xl text-gray-900 tracking-tight hidden sm:block truncate ml-2">
@@ -355,7 +355,7 @@ export const Header = ({
         {/* Notification Bell */}
         <button
           onClick={onToggleNotifications}
-          className="relative p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="relative p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <span className="sr-only">View notifications</span>
           <BellIcon className="h-6 w-6" />
@@ -410,20 +410,20 @@ export const Sidebar = ({
                 group relative flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all
                 ${
                   isActive
-                    ? 'bg-indigo-50 text-indigo-700' // Active state maps to the light blue from mockup
+                    ? 'bg-blue-50 text-blue-700' // Active state maps to the light blue from mockup
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }
               `}
             >
               {/* Optional indicator line based on mockup nuances */}
               {isActive && (
-                <div className="absolute left-0 w-1 h-8 bg-indigo-600 rounded-r-md" />
+                <div className="absolute left-0 w-1 h-8 bg-blue-600 rounded-r-md" />
               )}
 
               {item.icon && (
                 <item.icon
                   className={`mr-3 h-5 w-5 flex-shrink-0 transition-colors 
-                    ${isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-500'}`}
+                    ${isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'}`}
                 />
               )}
               {item.label}
@@ -448,7 +448,7 @@ export const Layout = ({
   children: React.ReactNode;
   sidebarItems: { label: string; href: string; icon?: React.ElementType }[];
   pathname: string;
-  title: string;
+  title: React.ReactNode;
   user?: { name: string };
   onLogout?: () => void;
   logoUrl?: string;

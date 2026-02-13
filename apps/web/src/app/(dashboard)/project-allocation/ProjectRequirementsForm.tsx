@@ -203,7 +203,7 @@ export default function ProjectRequirementsForm({
                   name="projectType"
                   checked={projectType === 'NEW'}
                   onChange={() => setProjectType('NEW')}
-                  className="mr-2 text-purple-600 focus:ring-purple-500"
+                  className="mr-2 text-blue-600 focus:ring-blue-500 accent-blue-600"
                 />
                 <span className="text-sm text-gray-900">
                   New / Upcoming Project
@@ -215,7 +215,7 @@ export default function ProjectRequirementsForm({
                   name="projectType"
                   checked={projectType === 'EXISTING'}
                   onChange={() => setProjectType('EXISTING')}
-                  className="mr-2 text-purple-600 focus:ring-purple-500"
+                  className="mr-2 text-blue-600 focus:ring-blue-500 accent-blue-600"
                 />
                 <span className="text-sm text-gray-900">Existing Project</span>
               </label>
@@ -225,7 +225,7 @@ export default function ProjectRequirementsForm({
                   name="projectType"
                   checked={projectType === 'GENERAL_DEMAND'}
                   onChange={() => setProjectType('GENERAL_DEMAND')}
-                  className="mr-2 text-purple-600 focus:ring-purple-500"
+                  className="mr-2 text-blue-600 focus:ring-blue-500 accent-blue-600"
                 />
                 <span className="text-sm text-gray-900">General Demand</span>
               </label>
@@ -253,7 +253,7 @@ export default function ProjectRequirementsForm({
                 <div className="space-y-1">
                   <select
                     id="project-ref"
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-blue-700 focus:border-blue-500 sm:text-sm"
                     value={selectedProjectId}
                     onChange={(e) => setSelectedProjectId(e.target.value)}
                   >
@@ -306,7 +306,7 @@ export default function ProjectRequirementsForm({
               <input
                 id="start-date-input"
                 type="date"
-                className="mt-1 block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                className="mt-1 block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
@@ -329,7 +329,7 @@ export default function ProjectRequirementsForm({
             <textarea
               id="context-input"
               rows={2}
-              className="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+              className="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               placeholder="Brief context about the project or demand..."
               value={context}
               onChange={(e) => setContext(e.target.value)}
@@ -345,7 +345,7 @@ export default function ProjectRequirementsForm({
             </label>
             <select
               id="priority-select"
-              className="mt-1 block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+              className="mt-1 block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               value={priority}
               onChange={(e) =>
                 setPriority(e?.target?.value as 'HIGH' | 'MEDIUM' | 'LOW')
@@ -372,7 +372,7 @@ export default function ProjectRequirementsForm({
                 max="100"
                 value={probability}
                 onChange={(e) => setProbability(Number(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
               />
               <div className="flex justify-between text-xs text-gray-400 mt-1">
                 <span>Unknown</span>
@@ -542,7 +542,7 @@ export default function ProjectRequirementsForm({
           <textarea
             id="resource-description"
             rows={3}
-            className="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+            className="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             placeholder="e.g. 2 Backend, 3 Frontend, 1 Project Manager, 2 QA"
             value={resourceDescription}
             onChange={(e) => setResourceDescription(e.target.value)}
@@ -552,7 +552,7 @@ export default function ProjectRequirementsForm({
         <Button
           onClick={handleSubmit}
           isLoading={isLoading}
-          className="w-full bg-purple-600 hover:bg-purple-700"
+          className="w-full bg-blue-600 hover:bg-blue-700"
         >
           {projectType === 'EXISTING'
             ? 'Find Additional Capacity'

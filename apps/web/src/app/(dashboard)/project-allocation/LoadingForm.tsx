@@ -4,17 +4,37 @@ import React, { useState, useEffect } from 'react';
 import type { LoadingDemand, LoadingRow } from '@repo/types';
 
 const ROLE_OPTIONS = [
-  'UX',
-  'Developer Frontend',
-  'Developer Backend',
+  'Frontend Developer',
+  'Backend Developer',
   'Tech Lead',
   'QA',
+  'BA',
+  'SM',
   'BA',
   'SM',
   'UX Designer',
   'Product Manager',
   'DevOps Engineer',
 ];
+
+const removeSkill = (
+  rowId: string,
+  type: 'primarySkills' | 'secondarySkills',
+  indexToRemove: number,
+  rows: LoadingRow[],
+  setRows: React.Dispatch<React.SetStateAction<LoadingRow[]>>,
+) => {
+  setRows((prev) =>
+    prev.map((r) => {
+      if (r.id !== rowId) return r;
+      const currentSkills = Array.isArray(r[type])
+        ? r[type]
+        : (r[type] as string).split(',').filter(Boolean);
+      const newSkills = currentSkills.filter((_, i) => i !== indexToRemove);
+      return { ...r, [type]: newSkills };
+    }),
+  );
+};
 
 interface LoadingFormProps {
   onSubmit: (demand: LoadingDemand) => void;
@@ -238,26 +258,6 @@ export default function LoadingForm({
             <h2 className="text-lg font-bold text-gray-900">
               Project Overview
             </h2>
-            <button
-              type="button"
-              onClick={handleImportCSV}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                />
-              </svg>
-              Import CSV
-            </button>
           </div>
 
           {/* Row 1: Project Name + Start Date */}
@@ -271,7 +271,7 @@ export default function LoadingForm({
                 placeholder="e.g. Q3 Platform Revamp"
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all"
+                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
               />
             </div>
             <div>
@@ -282,7 +282,7 @@ export default function LoadingForm({
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all"
+                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
               />
             </div>
           </div>
@@ -300,7 +300,7 @@ export default function LoadingForm({
                   const val = e.target.value.replaceAll(/\D/g, '');
                   setDurationMonths(Number(val) || 1);
                 }}
-                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all"
+                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
               />
             </div>
             <div>
@@ -314,7 +314,7 @@ export default function LoadingForm({
                   const val = e.target.value.replaceAll(/\D/g, '');
                   setIntervalCount(Math.max(0, Math.min(52, Number(val) || 0)));
                 }}
-                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all"
+                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
               />
             </div>
             <div>
@@ -324,7 +324,7 @@ export default function LoadingForm({
               <select
                 value={intervalLabel}
                 onChange={(e) => setIntervalLabel(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all appearance-none cursor-pointer"
+                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all appearance-none cursor-pointer"
               >
                 <option value="Week">Week</option>
                 <option value="Sprint">Sprint</option>
@@ -341,7 +341,7 @@ export default function LoadingForm({
                 onChange={(e) =>
                   setPriority(e.target.value as 'LOW' | 'MEDIUM' | 'HIGH')
                 }
-                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all appearance-none cursor-pointer"
+                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all appearance-none cursor-pointer"
               >
                 <option value="HIGH">High</option>
                 <option value="MEDIUM">Medium</option>
@@ -360,7 +360,7 @@ export default function LoadingForm({
               placeholder="Brief context about the project..."
               value={context}
               onChange={(e) => setContext(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all resize-none"
+              className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all resize-none"
             />
           </div>
         </div>
@@ -380,7 +380,7 @@ export default function LoadingForm({
                 onClick={handleExportCSV}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                Import CSV
+                Export CSV
               </button>
               <button
                 type="button"
@@ -410,16 +410,16 @@ export default function LoadingForm({
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                  <th className="px-2 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap w-[140px]">
                     Role
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                  <th className="px-2 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap min-w-[120px]">
                     Skills
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                  <th className="px-2 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap min-w-[120px]">
                     Secondary
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                  <th className="px-2 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap w-[90px]">
                     Level
                   </th>
                   {intervals.map((iv) => (
@@ -434,7 +434,7 @@ export default function LoadingForm({
                       {iv.index + 1}
                     </th>
                   ))}
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                  <th className="px-2 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                     Total
                   </th>
                   <th className="w-10" />
@@ -463,9 +463,9 @@ export default function LoadingForm({
                       key={row.id}
                       className="hover:bg-gray-50/50 transition-colors"
                     >
-                      <td className="px-4 py-3">
+                      <td className="px-2 py-3">
                         <select
-                          className="w-full min-w-[140px] px-2.5 py-1.5 bg-transparent border-0 text-sm text-gray-900 focus:outline-none focus:ring-0 cursor-pointer"
+                          className="w-full px-2 py-1.5 bg-transparent border-0 text-sm text-gray-900 focus:outline-none focus:ring-0 cursor-pointer"
                           value={row.roleName}
                           onChange={(e) =>
                             updateRow(row.id, 'roleName', e.target.value)
@@ -478,7 +478,7 @@ export default function LoadingForm({
                           ))}
                         </select>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-2 py-3">
                         <div className="flex gap-1 flex-wrap">
                           {(Array.isArray(row.primarySkills)
                             ? row.primarySkills
@@ -488,14 +488,29 @@ export default function LoadingForm({
                             .map((skill: string, i: number) => (
                               <span
                                 key={`ps-${skill}-${i}`}
-                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100"
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100 group"
                               >
                                 {skill.trim()}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    removeSkill(
+                                      row.id,
+                                      'primarySkills',
+                                      i,
+                                      rows,
+                                      setRows,
+                                    )
+                                  }
+                                  className="ml-1 text-blue-400 hover:text-blue-600 focus:outline-none opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  ×
+                                </button>
                               </span>
                             ))}
                           <input
                             type="text"
-                            className="w-20 px-1 py-0.5 border-0 bg-transparent text-xs text-gray-500 placeholder-gray-300 focus:outline-none"
+                            className="w-16 px-1 py-0.5 border-0 bg-transparent text-xs text-gray-500 placeholder-gray-300 focus:outline-none"
                             placeholder="+ add"
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && e.currentTarget.value) {
@@ -512,7 +527,7 @@ export default function LoadingForm({
                           />
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-2 py-3">
                         <div className="flex gap-1 flex-wrap">
                           {(Array.isArray(row.secondarySkills)
                             ? row.secondarySkills
@@ -522,9 +537,24 @@ export default function LoadingForm({
                             .map((skill: string, i: number) => (
                               <span
                                 key={`ss-${skill}-${i}`}
-                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600"
+                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 group"
                               >
                                 {skill.trim()}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    removeSkill(
+                                      row.id,
+                                      'secondarySkills',
+                                      i,
+                                      rows,
+                                      setRows,
+                                    )
+                                  }
+                                  className="ml-1 text-gray-400 hover:text-gray-600 focus:outline-none opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  ×
+                                </button>
                               </span>
                             ))}
                           <input
@@ -548,9 +578,9 @@ export default function LoadingForm({
                           />
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-2 py-3">
                         <select
-                          className="w-full min-w-[70px] px-2 py-1.5 bg-white border border-gray-200 rounded-md text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 appearance-none cursor-pointer"
+                          className="w-full px-2 py-1.5 bg-white border border-gray-200 rounded-md text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 appearance-none cursor-pointer"
                           value={row.experienceLevel}
                           onChange={(e) =>
                             updateRow(
@@ -576,7 +606,7 @@ export default function LoadingForm({
                         >
                           <input
                             type="text"
-                            className="w-10 h-8 px-1 border border-gray-200 rounded-md text-sm text-center text-gray-700 bg-purple-50/50 focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all"
+                            className="w-10 h-8 px-1 border border-gray-200 rounded-md text-sm text-center text-gray-700 bg-blue-50/50 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
                             placeholder="0"
                             value={row.intervalAllocations[iv.index] ?? ''}
                             onChange={(e) =>
@@ -589,9 +619,9 @@ export default function LoadingForm({
                           />
                         </td>
                       ))}
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-2 py-3 text-center">
                         <span
-                          className={`font-semibold text-sm ${rowTotal > 0 ? 'text-purple-700' : 'text-gray-400'}`}
+                          className={`font-semibold text-sm ${rowTotal > 0 ? 'text-blue-700' : 'text-gray-400'}`}
                         >
                           {rowTotal}
                         </span>
@@ -628,7 +658,7 @@ export default function LoadingForm({
                 <tr className="border-t-2 border-gray-100">
                   <td
                     colSpan={4}
-                    className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider"
+                    className="px-2 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider"
                   >
                     Total Allocation
                   </td>
@@ -644,7 +674,7 @@ export default function LoadingForm({
                       {getTotalForInterval(iv.index)}
                     </td>
                   ))}
-                  <td className="px-4 py-3 text-center text-sm font-bold text-purple-700">
+                  <td className="px-2 py-3 text-center text-sm font-bold text-blue-700">
                     {grandTotal}
                   </td>
                   <td />
@@ -660,7 +690,7 @@ export default function LoadingForm({
         type="button"
         onClick={handleSubmit}
         disabled={isLoading}
-        className="w-full py-3.5 px-6 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3.5 px-6 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isLoading ? (
           <span className="inline-flex items-center gap-2">
