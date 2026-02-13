@@ -1,9 +1,9 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { fetchEmployeesFromSupabase } from '../services/employeesService';
 
 export const employeeRoutes = Router();
 
-employeeRoutes.get('/', async (req, res) => {
+employeeRoutes.get('/', async (req: Request, res: Response) => {
   try {
     const employees = await fetchEmployeesFromSupabase();
     res.json(employees);
@@ -15,7 +15,7 @@ employeeRoutes.get('/', async (req, res) => {
   }
 });
 
-employeeRoutes.get('/me', async (req, res) => {
+employeeRoutes.get('/me', async (req: Request, res: Response) => {
   try {
     const employees = await fetchEmployeesFromSupabase();
     const first = employees[0];
@@ -31,7 +31,7 @@ employeeRoutes.get('/me', async (req, res) => {
   }
 });
 
-employeeRoutes.get('/:id', async (req, res) => {
+employeeRoutes.get('/:id', async (req: Request, res: Response) => {
   try {
     const employees = await fetchEmployeesFromSupabase();
     const emp = employees.find((e) => e.id === req.params.id);

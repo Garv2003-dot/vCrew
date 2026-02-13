@@ -24,7 +24,9 @@ const port = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-app.get('/health', (req, res) => {
+import { Request, Response } from 'express';
+
+app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
 

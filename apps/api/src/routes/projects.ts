@@ -1,9 +1,9 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { fetchProjectsFromSupabase } from '../services/projectsService';
 
 export const projectRoutes = Router();
 
-projectRoutes.get('/', async (req, res) => {
+projectRoutes.get('/', async (req: Request, res: Response) => {
   try {
     const projects = await fetchProjectsFromSupabase();
     res.json(projects);
