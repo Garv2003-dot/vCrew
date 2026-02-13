@@ -1,0 +1,30 @@
+{
+  "name": "enterprise-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "prettier": "^3.0.0",
+    "turbo": "latest",
+    "typescript": "^5.0.0"
+  },
+  "packageManager": "npm@10.0.0",
+  "dependencies": {
+    "@google/genai": "^1.40.0",
+    "@google/generative-ai": "^0.24.1",
+    "@supabase/supabase-js": "^2.95.3",
+    "dotenv": "^17.2.4",
+    "lucide-react": "^0.563.0"
+  }
+}
