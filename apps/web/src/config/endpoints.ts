@@ -1,16 +1,17 @@
-export const API_BASE_URL = 'http://localhost:3001/api';
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 export const ENDPOINTS = {
   EMPLOYEES: {
-    LIST: `${API_BASE_URL}/employees`,
-    ME: `${API_BASE_URL}/employees/me`,
+    LIST: `${API_BASE_URL}/api/employees`,
+    ME: `${API_BASE_URL}/api/employees/me`,
   },
   ALLOCATION: {
-    DEMAND: `${API_BASE_URL}/allocation/demand`,
-    LOADING_DEMAND: `${API_BASE_URL}/allocation/loading-demand`,
-    INSTRUCTION: `${API_BASE_URL}/allocation/instruction`,
+    DEMAND: `${API_BASE_URL}/api/allocation/demand`,
+    LOADING_DEMAND: `${API_BASE_URL}/api/allocation/loading-demand`,
+    INSTRUCTION: `${API_BASE_URL}/api/allocation/instruction`,
   },
   PROJECTS: {
-    LIST: `${API_BASE_URL}/projects`,
+    LIST: `${API_BASE_URL}/api/projects`,
   },
 };
