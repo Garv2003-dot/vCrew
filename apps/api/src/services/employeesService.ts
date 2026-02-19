@@ -98,6 +98,7 @@ export async function fetchEmployeesFromSupabase(): Promise<Employee[]> {
     name: e.name,
     role: e.role,
     experienceLevel: e.experience_level as 'JUNIOR' | 'MID' | 'SENIOR',
+    totalExpMonths: e.total_exp_months ?? undefined,
     age: e.age ?? undefined,
     gender: e.gender ?? '',
     mobile: e.mobile ?? '',

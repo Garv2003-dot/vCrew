@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { ProjectDemand, LoadingDemand } from '@repo/types';
+import { ProjectDemand, LoadingDemand, LoadingRow } from '@repo/types';
 import { generateAllocation, processAgentInstruction } from '../ai';
 import { fetchEmployeesFromSupabase } from '../services/employeesService';
 import { fetchProjectsFromSupabase } from '../services/projectsService';
@@ -17,11 +17,12 @@ async function getAllocationData() {
 
 /** Convert LoadingDemand to ProjectDemand (aggregate by role for AI; per-interval AI can be extended later) */
 function loadingToProjectDemand(loading: LoadingDemand): ProjectDemand {
-  const roles = loading.rows.map((row) => {
-    const headcount = Math.max(1, ...Object.values(row.intervalAllocations));
+  const roles = loading.rows.map((row: LoadingRow) => {
+    const values = Object.values(row.intervalAllocations) as number[];
+    const headcount = Math.max(1, ...values);
     return {
       roleName: row.roleName,
-      requiredSkills: (row.primarySkills || []).map((name, i) => ({
+      requiredSkills: (row.primarySkills || []).map((name: string, i: number) => ({
         skillId: `s-${i}`,
         name,
         minimumProficiency: 3 as 1 | 2 | 3 | 4 | 5,

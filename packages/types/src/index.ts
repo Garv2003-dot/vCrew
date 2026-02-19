@@ -11,6 +11,7 @@ export interface Employee {
   name: string;
   role: string;
   experienceLevel: 'JUNIOR' | 'MID' | 'SENIOR';
+  totalExpMonths?: number;
 
   age: number;
   gender: string;
