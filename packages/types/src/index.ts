@@ -8,6 +8,8 @@ export interface WorkExperience {
 
 export interface Employee {
   id: string;
+  /** External/HR employee id (e.g. from Excel) */
+  employeeId?: string;
   name: string;
   role: string;
   experienceLevel: 'JUNIOR' | 'MID' | 'SENIOR';
@@ -69,6 +71,8 @@ export interface AllocationProposal {
       reason: string;
       status: 'EXISTING' | 'NEW' | 'REMOVED'; // Track change status
       allocationPercent: number; // Support partial allocation
+      /** When from loading table: which intervals (weeks) this resource is used. Key=intervalIndex, Value=% */
+      allocationIntervals?: Record<number, number>;
     }[];
   }[];
 

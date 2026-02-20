@@ -1,9 +1,28 @@
 import React from 'react';
 import { Button } from '@repo/ui';
-import { AllocationProposal } from '@repo/types';
+import { AllocationProposal, LoadingDemand } from '@repo/types';
+
+function formatIntervalRange(indices: number[]): string {
+  if (indices.length === 0) return '';
+  const nums = indices.map((i) => i + 1);
+  if (nums.length === 1) return `${nums[0]}`;
+  const consecutive: number[][] = [];
+  let run: number[] = [nums[0]];
+  for (let i = 1; i < nums.length; i++) {
+    if (nums[i] === nums[i - 1] + 1) run.push(nums[i]);
+    else {
+      consecutive.push(run);
+      run = [nums[i]];
+    }
+  }
+  consecutive.push(run);
+  return consecutive
+    .map((r) => (r.length > 1 ? `${r[0]}-${r[r.length - 1]}` : `${r[0]}`))
+    .join(', ');
+}
 
 interface ProposedTeamPanelProps {
-  proposal: AllocationProposal | null;
+  proposal: (AllocationProposal & { loadingContext?: LoadingDemand; intervalLabel?: string }) | null;
   onEditRequirements: () => void;
   allocationSource: 'FORM' | 'AI';
   onApprove?: () => void;
@@ -30,6 +49,11 @@ export default function ProposedTeamPanel({
           <h2 className="text-xl font-bold text-gray-900">
             Proposed Team for {proposal?.projectName}
           </h2>
+          {(proposal as any)?.loadingContext && (
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">
+              Loading plan: {(proposal as any).loadingContext.intervalCount} {(proposal as any).intervalLabel || 'Week'}s
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {onUndo && (
@@ -96,6 +120,17 @@ export default function ProposedTeamPanel({
                       <p className="text-xs text-gray-500">
                         {rec.currentRole || rec.roleName} •{' '}
                         {rec.allocationPercent}% Allocated
+                        {rec.allocationIntervals && Object.keys(rec.allocationIntervals).length > 0 && (
+                          <>
+                            {' • '}
+                            <span className="text-blue-600 font-medium">
+                              Used in {(proposal as any)?.intervalLabel || 'Week'}{' '}
+                              {formatIntervalRange(
+                                Object.keys(rec.allocationIntervals).map(Number).sort((a, b) => a - b),
+                              )}
+                            </span>
+                          </>
+                        )}
                       </p>
                     </div>
                   </div>

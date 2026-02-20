@@ -75,7 +75,7 @@ export default function ProfilePage() {
           state: emp.state,
           pincode: emp.pincode,
           department: 'IT',
-          employeeId: emp.id,
+          employeeId: emp.employeeId ?? emp.id,
           about: emp.description || '',
           workExperience: (emp.workExperience || []).map((e: any, i: number) => ({
             id: i + 1,

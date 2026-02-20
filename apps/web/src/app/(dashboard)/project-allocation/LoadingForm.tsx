@@ -448,6 +448,7 @@ export default function LoadingForm({
                     style={{
                       borderLeft: '2px dashed #d1d5db',
                     }}
+                    title="100 = 1 FTE, 200 = 2 FTE per interval"
                   >
                     Allocation by {intervalLabel}{' '}
                     <span className="tracking-[0.3em]">··················</span>

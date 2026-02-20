@@ -16,11 +16,12 @@ async function getAllocationData() {
   return { employees, projects };
 }
 
-/** Convert LoadingDemand to ProjectDemand (aggregate by role for AI; per-interval AI can be extended later) */
+/** Convert LoadingDemand to ProjectDemand. intervalAllocations: 100=1 FTE, 200=2 FTE per week */
 function loadingToProjectDemand(loading: LoadingDemand): ProjectDemand {
   const roles = loading.rows.map((row: LoadingRow) => {
-    const values = Object.values(row.intervalAllocations) as number[];
-    const headcount = Math.max(1, ...values);
+    const values = Object.values(row.intervalAllocations || {}) as number[];
+    const maxInAnyWeek = values.length ? Math.max(...values) : 100;
+    const headcount = Math.max(1, Math.ceil(maxInAnyWeek / 100));
     return {
       roleName: row.roleName,
       requiredSkills: (row.primarySkills || []).map((name: string, i: number) => ({
@@ -103,7 +104,38 @@ allocationRoutes.post('/loading-demand', async (req, res) => {
     const { employees, projects } = await getAllocationData();
 
     const proposal = await generateAllocation(demand, employees, projects);
-    res.json({ ...proposal, loadingContext: loading });
+
+    // Enrich each recommendation with interval (week) allocation from loading table
+    const intervalLabel = loading.intervalLabel || 'Week';
+    const enrichedRoleAllocations = proposal.roleAllocations?.map((roleAlloc) => {
+      const loadingRow = loading.rows.find(
+        (r) => r.roleName.toLowerCase() === roleAlloc.roleName.toLowerCase(),
+      );
+      const intervals = loadingRow?.intervalAllocations || {};
+      const recCount = roleAlloc.recommendations.length;
+      const perPerson: Record<number, number> = {};
+      Object.entries(intervals).forEach(([idxStr, pct]) => {
+        const idx = Number(idxStr);
+        if (!Number.isNaN(idx) && pct > 0) {
+          perPerson[idx] = Math.round(pct / recCount);
+        }
+      });
+
+      return {
+        ...roleAlloc,
+        recommendations: roleAlloc.recommendations.map((rec) => ({
+          ...rec,
+          allocationIntervals: Object.keys(perPerson).length ? perPerson : undefined,
+        })),
+      };
+    }) ?? [];
+
+    res.json({
+      ...proposal,
+      roleAllocations: enrichedRoleAllocations,
+      loadingContext: loading,
+      intervalLabel,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({

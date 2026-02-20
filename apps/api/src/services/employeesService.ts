@@ -95,6 +95,7 @@ export async function fetchEmployeesFromSupabase(): Promise<Employee[]> {
 
   return employees.map((e: any) => ({
     id: e.id,
+    employeeId: e.employee_id ?? undefined,
     name: e.name,
     role: e.role,
     experienceLevel: e.experience_level as 'JUNIOR' | 'MID' | 'SENIOR',
