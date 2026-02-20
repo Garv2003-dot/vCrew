@@ -1,7 +1,7 @@
-"use client";
-import React, { useEffect, useState } from "react";
-import { Card, Button } from "@repo/ui";
-import { ENDPOINTS } from "../../../config/endpoints";
+'use client';
+import React, { useEffect, useState } from 'react';
+import { Card, Button } from '@repo/ui';
+import { ENDPOINTS } from '../../../config/endpoints';
 
 // --- MOCK SVG ICONS ---
 const StarIcon = () => <span className="text-blue-500 text-lg">★</span>;
@@ -26,7 +26,7 @@ const InfoRow = ({
 }) => (
   <div className="grid grid-cols-3 gap-2">
     <span className="font-semibold text-gray-700 col-span-1">{label}</span>
-    <span className="text-gray-600 col-span-2 break-words">{value || "—"}</span>
+    <span className="text-gray-600 col-span-2 break-words">{value || '—'}</span>
   </div>
 );
 
@@ -61,7 +61,7 @@ export default function ProfilePage() {
     fetch(ENDPOINTS.EMPLOYEES.ME)
       .then((res) => res.json())
       .then((emp: any) => {
-        if (!emp?.id) throw new Error("No employee data");
+        if (!emp?.id) throw new Error('No employee data');
         setProfileData({
           id: emp.id,
           name: emp.name,
@@ -77,21 +77,39 @@ export default function ProfilePage() {
           department: 'IT',
           employeeId: emp.id,
           about: emp.description || '',
-          workExperience: (emp.workExperience || []).map((e: any, i: number) => ({
-            id: i + 1,
-            company: e.companyName,
-            url: e.companyUrl,
-            title: e.jobTitle,
-            from: e.startDate?.slice(0, 7) || '',
-            to: e.endDate?.slice(0, 7) || 'Present',
-            cert: 'certificate.png',
-          })),
+          workExperience: (emp.workExperience || []).map(
+            (e: any, i: number) => ({
+              id: i + 1,
+              company: e.companyName,
+              url: e.companyUrl,
+              title: e.jobTitle,
+              from: e.startDate?.slice(0, 7) || '',
+              to: e.endDate?.slice(0, 7) || 'Present',
+              cert: 'certificate.png',
+            }),
+          ),
           techStack: (emp.skills || []).map((s: any) => s.name),
-          projects: (emp.currentProjects || []).map((p: any) => ({
-            id: p.projectId,
-            name: p.projectName || p.roleName,
-            logo: p.projectLogo || "/logos/rhapsody-logo.png",
-          })),
+          projects: (emp.currentProjects || []).map((p: any) => {
+            const projName = p.projectName || p.roleName || '';
+            let localLogoMatch = null;
+            const nm = projName.toLowerCase();
+            if (nm === 'neovance') localLogoMatch = '/logos/neovance-logo.jpeg';
+            else if (nm === 'rhapsody')
+              localLogoMatch = '/logos/rhapsody-logo.png';
+            else if (nm === 'healthcatalyst' || nm.includes('healthcatalys'))
+              localLogoMatch = '/logos/healthcatalys-logo.jpeg';
+            else if (nm === 'hhax' || nm === 'hhaexchange')
+              localLogoMatch = '/logos/hhax-logo.jpeg';
+            else if (nm === 'kipu') localLogoMatch = '/logos/kipu-logo.jpeg';
+            else if (nm === 'valeris')
+              localLogoMatch = '/logos/valeris-logo.jpeg';
+
+            return {
+              id: p.projectId,
+              name: projName,
+              logo: p.projectLogo || localLogoMatch,
+            };
+          }),
         });
       })
       .catch(() => setProfileData(null))
@@ -122,13 +140,13 @@ export default function ProfilePage() {
         <aside className="w-full lg:w-[320px] shrink-0 space-y-6 bg-white p-5 rounded-2xl shadow-[12px_0_30px_-15px_rgba(0,0,0,0.15)] z-10 border border-gray-50">
           {/* 3. CENTERED IMAGE: Removed complex horizontal flex, used justify-center */}
           <div className="flex justify-center w-full pt-2 pb-4">
-            <div className="w-36 h-36 bg-gray-200 rounded-2xl overflow-hidden shadow-sm border-4 border-white">
+            <div className="w-36 h-37 bg-gray-200 rounded-2xl overflow-hidden shadow-sm border-4 border-white">
               <img
-                src="https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg?w=2000"
+                src="/logos/profilepicture.JPG"
                 alt="Profile"
                 className="w-full h-full object-cover transition-transform hover:scale-105"
                 onError={(e) => {
-                  e.currentTarget.src = "fallback-image-url.png";
+                  e.currentTarget.src = 'fallback-image-url.png';
                 }}
               />
             </div>
@@ -166,7 +184,7 @@ export default function ProfilePage() {
         <main className="flex-1 space-y-6 py-4">
           <section>
             <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              {profileData.role || "Full stack Dev"}
+              {profileData.role || 'Full stack Dev'}
             </h1>
             <p className="text-gray-600 text-sm leading-relaxed max-w-4xl">
               {profileData.about}
@@ -279,18 +297,23 @@ export default function ProfilePage() {
                 profileData.projects.map((proj: any) => (
                   <div
                     key={proj.id}
-                    className="h-24 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center p-4 hover:shadow-md hover:border-blue-100 transition-all cursor-pointer group"
+                    className="h-24 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center p-4 hover:shadow-md hover:border-blue-100 transition-all cursor-pointer group text-center"
                   >
-                    {/* Using img tag for logos as requested. */}
-                    <img
-                      src={proj.logo}
-                      alt={proj.name}
-                      className="h-12 w-auto max-w-full object-contain transition-all duration-300"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                        e.currentTarget.parentElement!.innerHTML = `<span class="text-gray-400 font-bold">${proj.name}</span>`;
-                      }}
-                    />
+                    {proj.logo ? (
+                      <img
+                        src={proj.logo}
+                        alt={proj.name}
+                        className="h-12 w-auto max-w-full object-contain transition-all duration-300"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.parentElement!.innerHTML = `<span class="text-gray-500 font-bold">${proj.name}</span>`;
+                        }}
+                      />
+                    ) : (
+                      <span className="text-gray-500 font-bold">
+                        {proj.name}
+                      </span>
+                    )}
                   </div>
                 ))
               ) : (
