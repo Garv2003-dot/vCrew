@@ -8,8 +8,11 @@ export interface WorkExperience {
 
 export interface Employee {
   id: string;
+  /** Same as id; used by allocation/API responses. */
+  employeeId?: string;
   name: string;
   role: string;
+  jobTitle?: string;
   experienceLevel: 'JUNIOR' | 'MID' | 'SENIOR';
   totalExpMonths?: number;
 
