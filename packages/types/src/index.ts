@@ -8,8 +8,6 @@ export interface WorkExperience {
 
 export interface Employee {
   id: string;
-  /** External/HR employee id (e.g. from Excel) */
-  employeeId?: string;
   name: string;
   role: string;
   experienceLevel: 'JUNIOR' | 'MID' | 'SENIOR';

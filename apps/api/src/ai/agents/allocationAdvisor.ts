@@ -10,15 +10,73 @@ import { callGemini } from '../clients/geminiClient';
 import { extractAllocationIntent } from './intentAgent';
 import { createHash } from 'crypto';
 
+// Role/job_title synonyms aligned with dataset: roles, job_titles, skills.
+// Demand roles (e.g. "Senior Frontend Developer", "Project Manager") match employees by role or job_title.
 const ROLE_SYNONYMS: Record<string, string[]> = {
-  backend: ['backend', 'server', 'api', 'node', 'java', 'go', 'python'],
-  frontend: ['frontend', 'ui', 'react', 'angular', 'vue', 'web'],
-  devops: ['devops', 'infra', 'sre', 'cloud', 'aws', 'platform'],
+  backend: [
+    'backend', 'back end', 'server', 'api', 'node', 'java', 'go', 'python',
+    'ror', 'ruby', '.net', 'net', 'architect', 'full-stack', 'full stack',
+    'python/sql', 'backend - java', 'senior software engineer', 'software engineer',
+    'senior developer', 'technical lead', 'technical architect', 'team lead',
+  ],
+  frontend: [
+    'frontend', 'front end', 'fe engineer', 'fe ', 'ui', 'react', 'angular', 'vue', 'web',
+    'frontend developer', 'front end developer', 'full-stack', 'full stack',
+    'senior developer', 'software engineer', 'technical lead', 'team lead',
+    '.net engineers', 'ui/ux', 'ux ', 'figma', 'dev - full stack', 'dev- full stack',
+  ],
+  devops: [
+    'devops', 'dev-ops', 'infra', 'sre', 'cloud', 'aws', 'platform',
+    'docker', 'kubernetes', 'devops operator', 'devops consultant',
+  ],
   mobile: ['mobile', 'ios', 'android', 'react native', 'flutter'],
-  qa: ['qa', 'testing', 'automation', 'sdet'],
-  design: ['design', 'ux', 'ui', 'product designer'],
-  manager: ['manager', 'lead', 'em', 'director'],
+  qa: [
+    'qa', 'testing', 'automation', 'sdet', 'quality assurance',
+    'qa engineer', 'qa automation', 'tech lead - qa', 'tech lead- qa',
+    'team lead qa', 'consultant test engineer', 'selenium', 'cypress',
+  ],
+  design: [
+    'design', 'ux', 'ui', 'product designer', 'ui/ux', 'figma',
+    'team lead ui/ux', 'ui/ux consultant', 'ux sme',
+  ],
+  manager: [
+    'manager', 'lead', 'director', 'project manager', 'product manager',
+    'delivery manager', 'scrum master', 'scrum', 'product analyst',
+    'engagement lead', 'senior ba', 'ba', 'business analyst',
+    'technical pm', 'senior project manager', 'senior product manager',
+    'senior manager', 'vice president', 'avp', 'svp', 'vp',
+    'associate vice president', 'chief ', 'cto', 'coo', 'cfo',
+  ],
+  data: [
+    'data engineer', 'data-qa', 'data/bi', 'bi developer', 'databricks',
+    'data - sql', 'data - aiml', 'data bricks', 'lead data', 'senior data engineer',
+  ],
 };
+
+/** Normalize role text for matching: collapse "front end" -> "frontend", etc. */
+function normalizeRoleText(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/\s*-\s*/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/front\s+end/g, 'frontend')
+    .replace(/back\s+end/g, 'backend')
+    .replace(/full\s*stack/g, 'fullstack')
+    .replace(/\s*\/\s*/g, ' ');
+}
+
+/** True if required skill matches any employee skill (exact or substring, e.g. "Automation (Appium/Selenium)" matches "Selenium"). */
+function skillMatches(
+  requiredSkill: string,
+  employeeSkillNames: Set<string>,
+): boolean {
+  const r = requiredSkill.toLowerCase();
+  if (employeeSkillNames.has(r)) return true;
+  for (const emp of employeeSkillNames) {
+    if (r.includes(emp) || emp.includes(r)) return true;
+  }
+  return false;
+}
 
 // Simple in-memory cache for allocation results (2 minute TTL)
 interface CacheEntry {
@@ -99,13 +157,24 @@ function resolvePrimarySkills(
   }
 
   const mapRoleToSkills = (r: string) => {
+    const roleNorm = normalizeRoleText(r);
     const roleLower = r.toLowerCase();
-    if (ROLE_SYNONYMS.backend.some((s) => roleLower.includes(s)))
-      return ['Node.js', 'API'];
-    if (ROLE_SYNONYMS.frontend.some((s) => roleLower.includes(s)))
-      return ['React', 'TypeScript'];
-    if (ROLE_SYNONYMS.devops.some((s) => roleLower.includes(s)))
-      return ['Docker', 'Kubernetes'];
+    const check = (syns: string[]) =>
+      syns.some((s) => roleLower.includes(s) || roleNorm.includes(s));
+    if (check(ROLE_SYNONYMS.frontend))
+      return ['React', 'Angular', 'JavaScript', 'TypeScript', 'Vue.js', 'HTML', 'CSS'];
+    if (check(ROLE_SYNONYMS.backend))
+      return ['Node.js', 'Java', 'Python', 'PostgreSQL', 'Ruby', 'Ruby on Rails', '.Net', 'C#'];
+    if (check(ROLE_SYNONYMS.devops))
+      return ['Docker', 'Kubernetes', 'AWS', 'CI/CD', 'Azure'];
+    if (check(ROLE_SYNONYMS.qa))
+      return ['Selenium', 'Cypress', 'Automation testing', 'API Testing', 'Jest'];
+    if (check(ROLE_SYNONYMS.manager))
+      return []; // PM/manager: match by role/job_title only; optional skills Jira/Scrum
+    if (check(ROLE_SYNONYMS.design))
+      return ['Figma', 'Sketch', 'AdobeXD', 'UI/UX'];
+    if (ROLE_SYNONYMS.data && check(ROLE_SYNONYMS.data))
+      return ['Python', 'SQL', 'PostgreSQL', 'PowerBI', 'Tableau', 'Spark'];
     return [];
   };
 
@@ -199,34 +268,44 @@ function resolveCandidates(
     // 2. Status constraint
     if ((e.status as string) === 'ON_LEAVE') return false;
 
-    // 3. Role Constraint (STRICT but SYNONYM-AWARE)
+    // 3. Role/JobTitle: match on both role and job_title using expanded synonyms
+    const jobTitle = (e as any).jobTitle ?? '';
+    const eText = normalizeRoleText(e.role + ' ' + jobTitle);
     const eRole = e.role.toLowerCase();
+    const rNorm = normalizeRoleText(roleName);
     const rLower = roleName.toLowerCase();
 
-    // Check direct inclusion first
-    let match = eRole.includes(rLower);
+    let match =
+      eText.includes(rNorm) ||
+      rNorm.includes(eText) ||
+      eRole.includes(rLower) ||
+      rLower.includes(eRole);
 
-    // If no direct match, check synonyms
     if (!match) {
-      // Find which canonical group the requested role belongs to
       const group = Object.values(ROLE_SYNONYMS).find((synonyms) =>
-        synonyms.some((s) => rLower.includes(s)),
+        synonyms.some((s) => rLower.includes(s) || rNorm.includes(s)),
       );
       if (group) {
-        // If requested role is in a group, check if employee role is also in that group
-        match = group.some((s) => eRole.includes(s));
+        match = group.some(
+          (s) =>
+            eText.includes(s) ||
+            eRole.includes(s) ||
+            (jobTitle && (jobTitle as string).toLowerCase().includes(s)),
+        );
       }
     }
 
     if (!match) return false;
 
-    // 4. Skill constraint (Must match at least one primary skill)
+    // 4. Skill constraint: match at least one required skill (fuzzy: AI skills like "Automation (Appium/Selenium)" match employee "Selenium")
     if (!requiredSkills || requiredSkills.length === 0) return true;
 
     const employeeSkills = new Set(e.skills.map((s) => s.name.toLowerCase()));
-    const reqSkillsLower = requiredSkills.map((s) => s.toLowerCase());
+    const hasSkillMatch = requiredSkills.some((req) => skillMatches(req, employeeSkills));
+    if (hasSkillMatch) return true;
 
-    return reqSkillsLower.some((req) => employeeSkills.has(req));
+    // If role matched but no skill match, still allow (AI often invents skill names not in our catalog)
+    return true;
   });
   return filtered;
 }
@@ -247,26 +326,33 @@ function scoreCandidateDeterministic(
   const expMap: Record<string, number> = { SENIOR: 1.0, MID: 0.7, JUNIOR: 0.4 };
   score += (expMap[candidate.experienceLevel] || 0.5) * 0.2;
 
-  // 3. Skill match weight (0-0.4)
+  // 3. Skill match weight (0-0.4) — fuzzy match so AI-invented skills (e.g. "Automation (Appium/Selenium)") match catalog ("Selenium")
   if (requiredSkills && requiredSkills.length > 0) {
     const employeeSkills = new Set(
       candidate.skills.map((s) => s.name.toLowerCase()),
     );
-    const reqSkillsLower = requiredSkills.map((s) => s.toLowerCase());
-    const matchedSkills = reqSkillsLower.filter((req) =>
-      employeeSkills.has(req),
-    );
-    const skillMatchRatio = matchedSkills.length / requiredSkills.length;
+    const matchedCount = requiredSkills.filter((req) =>
+      skillMatches(req, employeeSkills),
+    ).length;
+    const skillMatchRatio = matchedCount / requiredSkills.length;
     score += skillMatchRatio * 0.4;
   } else {
-    // If no required skills, give full points
     score += 0.4;
   }
 
-  // 4. Role match weight (0-0.1)
+  // 4. Role/job_title match weight (0-0.1)
+  const candidateText = normalizeRoleText(
+    candidate.role + ' ' + ((candidate as any).jobTitle ?? ''),
+  );
+  const roleNorm = normalizeRoleText(roleName);
   const roleLower = roleName.toLowerCase();
   const candidateRoleLower = candidate.role.toLowerCase();
-  if (candidateRoleLower.includes(roleLower) || roleLower.includes(candidateRoleLower)) {
+  if (
+    candidateText.includes(roleNorm) ||
+    roleNorm.includes(candidateText) ||
+    candidateRoleLower.includes(roleLower) ||
+    roleLower.includes(candidateRoleLower)
+  ) {
     score += 0.1;
   }
 

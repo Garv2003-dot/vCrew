@@ -74,20 +74,18 @@ export default function ProfilePage() {
           address: emp.address,
           state: emp.state,
           pincode: emp.pincode,
-          department: "IT",
-          employeeId: emp.employeeId ?? emp.id,
-          about: emp.description || "",
-          workExperience: (emp.workExperience || []).map(
-            (e: any, i: number) => ({
-              id: i + 1,
-              company: e.companyName,
-              url: e.companyUrl,
-              title: e.jobTitle,
-              from: e.startDate?.slice(0, 7) || "",
-              to: e.endDate?.slice(0, 7) || "Present",
-              cert: "certificate.png",
-            }),
-          ),
+          department: 'IT',
+          employeeId: emp.id,
+          about: emp.description || '',
+          workExperience: (emp.workExperience || []).map((e: any, i: number) => ({
+            id: i + 1,
+            company: e.companyName,
+            url: e.companyUrl,
+            title: e.jobTitle,
+            from: e.startDate?.slice(0, 7) || '',
+            to: e.endDate?.slice(0, 7) || 'Present',
+            cert: 'certificate.png',
+          })),
           techStack: (emp.skills || []).map((s: any) => s.name),
           projects: (emp.currentProjects || []).map((p: any) => ({
             id: p.projectId,
@@ -168,7 +166,7 @@ export default function ProfilePage() {
         <main className="flex-1 space-y-6 py-4">
           <section>
             <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              {profileData.role || "Full stack Dev"} : Team Pulse
+              {profileData.role || "Full stack Dev"}
             </h1>
             <p className="text-gray-600 text-sm leading-relaxed max-w-4xl">
               {profileData.about}

@@ -18,7 +18,7 @@ employeeRoutes.get('/', async (req: Request, res: Response) => {
 employeeRoutes.get('/me', async (req: Request, res: Response) => {
   try {
     const employees = await fetchEmployeesFromSupabase();
-    const first = employees[0];
+    const first = employees.find((e) => e.employeeId === '10391');
     if (!first) {
       return res.status(404).json({ error: 'No employees found' });
     }

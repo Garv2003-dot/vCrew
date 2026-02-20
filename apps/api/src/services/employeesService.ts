@@ -97,25 +97,33 @@ export async function fetchEmployeesFromSupabase(): Promise<Employee[]> {
     });
   }
 
-  return employees.map((e: any) => ({
-    id: e.id,
-    employeeId: e.employee_id ?? undefined,
-    name: e.name,
-    role: e.role,
-    experienceLevel: e.experience_level as "JUNIOR" | "MID" | "SENIOR",
-    totalExpMonths: e.total_exp_months ?? undefined,
-    age: e.age ?? undefined,
-    gender: e.gender ?? "",
-    mobile: e.mobile ?? "",
-    email: e.email ?? "",
-    address: e.address ?? "",
-    state: e.state ?? "",
-    pincode: e.pincode ?? "",
-    description: e.description ?? "",
-    workExperience: expMap.get(e.id) || [],
-    skills: skillsMap.get(e.id) || [],
-    availabilityPercent: e.availability_percent ?? 100,
-    status: e.status as Employee["status"],
-    currentProjects: assignMap.get(e.id) || [],
-  }));
+  return employees
+    .map((e: any) => {
+      const currentProjects = assignMap.get(e.id) || [];
+      return {
+        id: e.id,
+        employeeId: e.employee_id,
+        name: e.name,
+        role: e.role,
+        jobTitle: e.job_title ?? e.role,
+        experienceLevel: e.experience_level as "JUNIOR" | "MID" | "SENIOR",
+        totalExpMonths: e.total_exp_months ?? undefined,
+        age: e.age ?? undefined,
+        gender: e.gender ?? "",
+        mobile: e.mobile ?? "",
+        email: e.email ?? "",
+        address: e.address ?? "",
+        state: e.state ?? "",
+        pincode: e.pincode ?? "",
+        description: e.description ?? "",
+        workExperience: expMap.get(e.id) || [],
+        skills: skillsMap.get(e.id) || [],
+        availabilityPercent: e.availability_percent ?? 100,
+        status: e.status as Employee["status"],
+        currentProjects,
+        currentProjectNames: [
+          ...new Set(currentProjects.map((p) => p.projectName).filter(Boolean)),
+        ] as string[],
+      };
+    });
 }
