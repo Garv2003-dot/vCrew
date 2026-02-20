@@ -5,19 +5,6 @@ import { Card, Button, Input } from '@repo/ui';
 import { ProjectDemand } from '@repo/types';
 import { ENDPOINTS } from '../../../config/endpoints';
 
-const ROLE_OPTIONS = [
-  'Frontend Developer',
-  'Backend Developer',
-  'Senior Frontend Dev',
-  'Backend Engineer',
-  'Full Stack Developer',
-  'UX Designer',
-  'DevOps Engineer',
-  'Product Manager',
-  'QA',
-  'Data Scientist',
-];
-
 type ProjectType = 'NEW' | 'EXISTING' | 'GENERAL_DEMAND';
 
 interface RoleRow {
@@ -48,13 +35,17 @@ export default function ProjectRequirementsForm({
   const [selectedProjectId, setSelectedProjectId] = useState('');
 
   const [startDate, setStartDate] = useState(
-    initialValues.startDate
-      ? initialValues.startDate.split('T')[0]
-      : new Date().toISOString().split('T')[0],
+    initialValues.startDate ? initialValues.startDate.split('T')[0] : '',
   );
-  const [duration, setDuration] = useState(initialValues.durationMonths || 3);
-  const [priority, setPriority] = useState(initialValues.priority || 'HIGH');
-  const [probability, setProbability] = useState(80);
+  const [duration, setDuration] = useState<number | ''>(
+    initialValues.durationMonths != null ? initialValues.durationMonths : '',
+  );
+  const [priority, setPriority] = useState(initialValues.priority || '');
+  const [probability, setProbability] = useState(
+    initialValues.probabilityOfConversion != null
+      ? initialValues.probabilityOfConversion
+      : 0,
+  );
   const [context, setContext] = useState(initialValues.context || '');
 
   const [resourceDescription, setResourceDescription] = useState(
@@ -62,6 +53,9 @@ export default function ProjectRequirementsForm({
   );
 
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
+  const [roleOptions, setRoleOptions] = useState<string[]>([]);
+  /** Only one input method at a time: role rows OR multiline text */
+  const [rolesInputMode, setRolesInputMode] = useState<'rows' | 'multiline'>('rows');
   const [roleRows, setRoleRows] = useState<RoleRow[]>(() => {
     const roles = initialValues.roles || [];
     if (roles.length > 0) {
@@ -94,6 +88,15 @@ export default function ProjectRequirementsForm({
         setProjects(Array.isArray(data) ? data : []),
       )
       .catch(() => setProjects([]));
+  }, []);
+
+  useEffect(() => {
+    fetch(ENDPOINTS.METADATA.LIST)
+      .then((res) => res.json())
+      .then((data: { roles?: string[] }) =>
+        setRoleOptions(Array.isArray(data?.roles) ? data.roles : []),
+      )
+      .catch(() => setRoleOptions([]));
   }, []);
 
   useEffect(() => {
@@ -166,18 +169,40 @@ export default function ProjectRequirementsForm({
         allocationPercent: 100,
       }));
 
+    const hasRoles = explicitRoles.length > 0;
+    const hasMultiline = (resourceDescription || '').trim().length > 0;
+    const validByMode = rolesInputMode === 'rows' ? hasRoles : hasMultiline;
+    if (!validByMode) {
+      return; // User must provide content in the selected input method
+    }
+
     const demand: ProjectDemand = {
       demandId,
       projectType,
       projectId: projectType === 'EXISTING' ? selectedProjectId : undefined,
       projectName: finalProjectName,
-      priority: priority as 'HIGH' | 'MEDIUM' | 'LOW',
-      startDate: new Date(startDate).toISOString(),
-      durationMonths: duration,
-      probabilityOfConversion: projectType === 'NEW' ? probability : undefined,
-      context: context.trim() || undefined,
-      resourceDescription: resourceDescription.trim() || undefined,
-      roles: explicitRoles, // If empty, API parses resourceDescription
+      priority: (priority || 'HIGH') as 'HIGH' | 'MEDIUM' | 'LOW',
+      startDate:
+        projectType === 'NEW'
+          ? (startDate
+              ? new Date(startDate).toISOString()
+              : new Date().toISOString())
+          : projectType === 'EXISTING'
+            ? new Date().toISOString()
+            : undefined,
+      durationMonths:
+        projectType === 'NEW'
+          ? (typeof duration === 'number' ? duration : Number(duration) || 0)
+          : 0,
+      probabilityOfConversion:
+        projectType === 'NEW' ? (probability || 0) : undefined,
+      context:
+        projectType === 'NEW' ? (context.trim() || undefined) : undefined,
+      resourceDescription:
+        rolesInputMode === 'multiline'
+          ? resourceDescription.trim() || undefined
+          : undefined,
+      roles: rolesInputMode === 'rows' ? explicitRoles : [],
     };
     onSubmit(demand);
   };
@@ -290,117 +315,155 @@ export default function ProjectRequirementsForm({
           )}
         </div>
 
-        {/* SECTION 2: Timeline & Context (just below Project Type) */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-gray-900 border-b pb-1">
-            Timeline & Context
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
+        {/* SECTION 2: Timeline & Context – only for NEW project */}
+        {projectType === 'NEW' && (
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-gray-900 border-b pb-1">
+              Timeline & Context
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="start-date-input"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Start Date
+                </label>
+                <input
+                  id="start-date-input"
+                  type="date"
+                  className="mt-1 block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+              <Input
+                label="Duration (months)"
+                type="number"
+                value={duration === '' ? '' : duration}
+                onChange={(e) =>
+                  setDuration(
+                    e.target.value === '' ? '' : Number(e.target.value),
+                  )
+                }
+              />
+            </div>
+
             <div>
               <label
-                htmlFor="start-date-input"
+                htmlFor="context-input"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Start Date
+                Context
               </label>
-              <input
-                id="start-date-input"
-                type="date"
-                className="mt-1 block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+              <textarea
+                id="context-input"
+                rows={2}
+                className="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="Brief context about the project or demand..."
+                value={context}
+                onChange={(e) => setContext(e.target.value)}
               />
             </div>
-            <Input
-              label="Duration (months)"
-              type="number"
-              value={duration}
-              onChange={(e) => setDuration(Number(e.target.value))}
-            />
-          </div>
 
-          <div>
-            <label
-              htmlFor="context-input"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Context
-            </label>
-            <textarea
-              id="context-input"
-              rows={2}
-              className="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              placeholder="Brief context about the project or demand..."
-              value={context}
-              onChange={(e) => setContext(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="priority-select"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Priority
-            </label>
-            <select
-              id="priority-select"
-              className="mt-1 block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              value={priority}
-              onChange={(e) =>
-                setPriority(e?.target?.value as 'HIGH' | 'MEDIUM' | 'LOW')
-              }
-            >
-              <option value="HIGH">High</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="LOW">Low</option>
-            </select>
-          </div>
-
-          {showProbability && (
-            <div className="transition-all duration-300 ease-in-out">
-              <label
-                htmlFor="prob-slider"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Probability of Conversion: {probability}%
-              </label>
-              <input
-                id="prob-slider"
-                type="range"
-                min="0"
-                max="100"
-                value={probability}
-                onChange={(e) => setProbability(Number(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-              <div className="flex justify-between text-xs text-gray-400 mt-1">
-                <span>Unknown</span>
-                <span>Likely</span>
-                <span>Confirmed</span>
+            {showProbability && (
+              <div className="transition-all duration-300 ease-in-out">
+                <label
+                  htmlFor="prob-slider"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Probability of Conversion: {probability}%
+                </label>
+                <input
+                  id="prob-slider"
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={probability}
+                  onChange={(e) => setProbability(Number(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>Unknown</span>
+                  <span>Likely</span>
+                  <span>Confirmed</span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        )}
+
+        {/* Priority – shown for all project types (NEW, EXISTING, GENERAL_DEMAND) */}
+        <div className="space-y-2">
+          <label
+            htmlFor="priority-select"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Priority
+          </label>
+          <select
+            id="priority-select"
+            className="mt-1 block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            value={priority}
+            onChange={(e) =>
+              setPriority(e?.target?.value as 'HIGH' | 'MEDIUM' | 'LOW')
+            }
+          >
+            <option value="">Select priority</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
+          </select>
         </div>
 
-        {/* SECTION 3: Roles and Skills – add multiple resources */}
+        {/* SECTION 3: One input method at a time – role rows OR multiline text */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium text-gray-900 border-b pb-1">
-              Roles &amp; Skills
+              How do you want to define roles?
             </h3>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={addRoleRow}
-              className="text-xs"
-            >
-              + Add role
-            </Button>
           </div>
-          <p className="text-xs text-gray-500">
-            Specify exact roles, skills, and headcount.
-          </p>
+          <div className="flex rounded-lg border border-gray-200 p-1 bg-gray-50 w-fit">
+            <button
+              type="button"
+              onClick={() => setRolesInputMode('rows')}
+              className={`px-3 py-2 text-sm font-medium rounded-md transition ${
+                rolesInputMode === 'rows'
+                  ? 'bg-white text-blue-700 shadow border border-gray-200'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Add roles (rows)
+            </button>
+            <button
+              type="button"
+              onClick={() => setRolesInputMode('multiline')}
+              className={`px-3 py-2 text-sm font-medium rounded-md transition ${
+                rolesInputMode === 'multiline'
+                  ? 'bg-white text-blue-700 shadow border border-gray-200'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Describe in text
+            </button>
+          </div>
+
+          {rolesInputMode === 'rows' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-700">Roles &amp; Skills</span>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={addRoleRow}
+                className="text-xs"
+              >
+                + Add role
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500">
+              Specify exact roles, skills, and headcount.
+            </p>
 
           <div className="space-y-3">
             {roleRows.map((row) => (
@@ -425,7 +488,7 @@ export default function ProjectRequirementsForm({
                       <option value="" disabled>
                         Select Role
                       </option>
-                      {ROLE_OPTIONS.map((opt) => (
+                      {roleOptions.map((opt) => (
                         <option key={opt} value={opt}>
                           {opt}
                         </option>
@@ -477,15 +540,17 @@ export default function ProjectRequirementsForm({
                   </div>
 
                   {/* Remove */}
-                  <div className="col-span-12 md:col-span-1 flex md:justify-end">
+                  <div className="col-span-12 md:col-span-1 flex md:justify-end items-end">
                     {roleRows.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeRoleRow(row.id)}
-                        className="h-10 px-3 rounded-md text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 transition"
+                        className="h-10 w-10 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition"
                         aria-label="Remove role"
                       >
-                        Remove
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </button>
                     )}
                   </div>
@@ -524,42 +589,51 @@ export default function ProjectRequirementsForm({
               </div>
             ))}
           </div>
+          </div>
+          )}
+
+          {rolesInputMode === 'multiline' && (
+          <div className="space-y-2">
+            <label
+              htmlFor="resource-description"
+              className="block text-sm font-medium text-gray-700"
+            >
+              How many resources do you need?
+            </label>
+            <p className="text-xs text-gray-500">
+              Describe in plain text, e.g. &quot;2 Backend, 3 Frontend, 1
+              Project Manager, 2 QA&quot;. The AI will interpret this.
+            </p>
+            <textarea
+              id="resource-description"
+              rows={4}
+              className="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              placeholder="e.g. 2 Backend, 3 Frontend, 1 Project Manager, 2 QA"
+              value={resourceDescription}
+              onChange={(e) => setResourceDescription(e.target.value)}
+            />
+          </div>
+          )}
         </div>
 
-        {/* SECTION 4: Multiline – How many resources (optional text input) */}
-        <div className="space-y-2">
-          <label
-            htmlFor="resource-description"
-            className="block text-sm font-medium text-gray-700"
+        <div className="sticky bottom-0 left-0 right-0 z-10 bg-white pt-4 -mb-5 pb-1 border-t border-gray-100 mt-2">
+          <Button
+            onClick={handleSubmit}
+            isLoading={isLoading}
+            disabled={
+              rolesInputMode === 'rows'
+                ? !roleRows.some((r) => r.roleName && r.headcount > 0)
+                : !(resourceDescription || '').trim()
+            }
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            How many resources do you need?
-          </label>
-          <p className="text-xs text-gray-500">
-            Or describe in plain text, e.g. &quot;2 Backend, 3 Frontend, 1
-            Project Manager, 2 QA&quot;. The AI will interpret this if no
-            specific roles are added above.
-          </p>
-          <textarea
-            id="resource-description"
-            rows={3}
-            className="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            placeholder="e.g. 2 Backend, 3 Frontend, 1 Project Manager, 2 QA"
-            value={resourceDescription}
-            onChange={(e) => setResourceDescription(e.target.value)}
-          />
+            {projectType === 'EXISTING'
+              ? 'Find Additional Capacity'
+              : projectType === 'GENERAL_DEMAND'
+                ? 'Generate Allocation'
+                : 'Plan New Allocation'}
+          </Button>
         </div>
-
-        <Button
-          onClick={handleSubmit}
-          isLoading={isLoading}
-          className="w-full bg-blue-600 hover:bg-blue-700"
-        >
-          {projectType === 'EXISTING'
-            ? 'Find Additional Capacity'
-            : projectType === 'GENERAL_DEMAND'
-              ? 'Generate Allocation'
-              : 'Plan New Allocation'}
-        </Button>
       </div>
     </Card>
   );

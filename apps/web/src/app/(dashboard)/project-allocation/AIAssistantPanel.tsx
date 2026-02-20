@@ -23,11 +23,11 @@ interface AIAssistantPanelProps {
 }
 
 const SUGGESTION_CHIPS = [
-  'Create an app for Android/iOS for an airline company - frontend heavy, need backend and QA, project manager',
-  'I need 2 backend devs and 1 PM',
-  'Summarize the allocation',
-  'Identify potential bottlenecks',
-  'Analyze skill gaps',
+  'Build a HIPAA-compliant patient engagement mobile app (iOS/Android). Frontend heavy. Need backend engineers, DevOps, QA, security/compliance lead, and a healthcare product manager. Create the team.',
+  'Develop a remote patient monitoring platform for US providers. Requires mobile app + clinician dashboard. Need backend, data engineer, cloud architect, QA automation, regulatory consultant, and project manager. Form the team.',
+  'Create a healthcare interoperability platform (FHIR-based) integrating with major US EHR systems. Need integration engineers, backend developers, DevOps, QA, solution architect, and technical program manager. Assemble the team.',
+  'Build a US healthcare claims processing web application. Need backend engineers, frontend engineers, QA, business analyst with payer experience, compliance specialist, and project manager. Generate the team.',
+  'Develop a telehealth platform for US clinics with video, scheduling, and billing. Need mobile engineers, backend engineers, DevOps, QA, UX designer, security engineer, and healthcare product manager. Create the team.',
 ];
 
 export default function AIAssistantPanel({
@@ -39,12 +39,17 @@ export default function AIAssistantPanel({
 }: AIAssistantPanelProps) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const didInitialMount = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
+    if (!didInitialMount.current) {
+      didInitialMount.current = true;
+      return;
+    }
     scrollToBottom();
   }, [messages, isThinking]);
 
@@ -61,7 +66,7 @@ export default function AIAssistantPanel({
     >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-        <h3 className="text-base font-semibold text-gray-900">AI Chat</h3>
+        <h3 className="text-base font-semibold text-gray-900">Agentic AI</h3>
         <button
           type="button"
           className="p-1 text-gray-400 hover:text-gray-600 rounded-md transition-colors"
@@ -118,7 +123,7 @@ export default function AIAssistantPanel({
                   key={chip}
                   type="button"
                   onClick={() => handleSend(chip)}
-                  className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-full hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-all"
+                  className="px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-all text-left max-w-sm whitespace-normal"
                 >
                   {chip}
                 </button>

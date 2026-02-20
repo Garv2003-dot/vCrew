@@ -21,6 +21,7 @@ import { allocationRoutes } from './routes/allocation';
 import express from 'express';
 import cors from 'cors';
 import { employeeRoutes } from './routes/employees';
+import { metadataRoutes } from './routes/metadata';
 import { projectRoutes } from './routes/projects';
 
 const app = express();
@@ -36,6 +37,7 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 app.use('/api/employees', employeeRoutes);
+app.use('/api/metadata', metadataRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/allocation', allocationRoutes);
 

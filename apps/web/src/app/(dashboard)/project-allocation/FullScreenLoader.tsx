@@ -2,6 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 
+export interface LoaderThinkingStep {
+  agent: string;
+  step: string;
+  message: string;
+}
+
 const LOADING_MESSAGES = [
   'Analyzing project requirements...',
   'Scanning employee database...',
@@ -11,7 +17,11 @@ const LOADING_MESSAGES = [
   'Finalizing allocation proposal...',
 ];
 
-export default function FullScreenLoader() {
+interface FullScreenLoaderProps {
+  thinkingSteps?: LoaderThinkingStep[];
+}
+
+export default function FullScreenLoader({ thinkingSteps = [] }: FullScreenLoaderProps) {
   const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
@@ -24,7 +34,7 @@ export default function FullScreenLoader() {
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm transition-opacity duration-300">
-      <div className="relative flex flex-col items-center p-8 bg-white rounded-2xl shadow-2xl border border-purple-100 max-w-md w-full mx-4">
+      <div className="relative flex flex-col items-center p-8 bg-white rounded-2xl shadow-2xl border border-purple-100 max-w-lg w-full mx-4 max-h-[85vh] overflow-hidden flex flex-col">
         {/* Animated AI Brain/Spinner */}
         <div className="relative w-24 h-24 mb-8">
           <div className="absolute inset-0 rounded-full border-4 border-blue-100 animate-pulse"></div>
@@ -47,20 +57,36 @@ export default function FullScreenLoader() {
           </div>
         </div>
 
-        {/* Text Content */}
-        <div className="text-center space-y-3">
-          <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-600">
+        {/* Text Content or Agent Logs */}
+        <div className="text-center space-y-2 w-full min-h-0 flex flex-col">
+          <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-600 shrink-0">
             AI is thinking
           </h3>
-          <div className="h-6 overflow-hidden">
-            <p className="text-gray-500 animate-fade-in-up key={messageIndex}">
-              {LOADING_MESSAGES[messageIndex]}
-            </p>
-          </div>
+          {thinkingSteps.length > 0 ? (
+            <div className="space-y-1.5 overflow-y-auto max-h-48 text-left mt-2 pr-1">
+              {thinkingSteps.map((s, i) => (
+                <div
+                  key={i}
+                  className="flex gap-2 items-start text-xs text-amber-800 bg-amber-50/80 rounded-lg px-3 py-2 border border-amber-100"
+                >
+                  <span className="font-mono font-medium text-amber-600 shrink-0">
+                    {s.agent}
+                  </span>
+                  <span className="text-amber-700 break-words">{s.message}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="h-6 overflow-hidden">
+              <p className="text-gray-500 animate-fade-in-up" key={messageIndex}>
+                {LOADING_MESSAGES[messageIndex]}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full h-1 bg-gray-100 rounded-full mt-8 overflow-hidden">
+        <div className="w-full h-1 bg-gray-100 rounded-full mt-4 overflow-hidden shrink-0">
           <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 animate-progress origin-left w-full"></div>
         </div>
       </div>
