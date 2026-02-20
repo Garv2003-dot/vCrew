@@ -2,20 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import type { LoadingDemand, LoadingRow } from '@repo/types';
-
-const ROLE_OPTIONS = [
-  'Frontend Developer',
-  'Backend Developer',
-  'Tech Lead',
-  'QA',
-  'BA',
-  'SM',
-  'BA',
-  'SM',
-  'UX Designer',
-  'Product Manager',
-  'DevOps Engineer',
-];
+import { ENDPOINTS } from '../../../config/endpoints';
 
 const removeSkill = (
   rowId: string,
@@ -47,6 +34,7 @@ export default function LoadingForm({
   isLoading,
   initialValues = {},
 }: LoadingFormProps) {
+  const [roleOptions, setRoleOptions] = useState<string[]>([]);
   const [demandId, setDemandId] = useState('');
   const [projectName, setProjectName] = useState(
     initialValues.projectName || '',
@@ -91,6 +79,15 @@ export default function LoadingForm({
         `load-${Math.random().toString(36).substring(2, 9)}-${Date.now().toString(36)}`,
       );
     }
+  }, []);
+
+  useEffect(() => {
+    fetch(ENDPOINTS.METADATA.LIST)
+      .then((res) => res.json())
+      .then((data: { roles?: string[] }) =>
+        setRoleOptions(Array.isArray(data?.roles) ? data.roles : []),
+      )
+      .catch(() => setRoleOptions([]));
   }, []);
 
   const intervals = Array.from(
@@ -472,7 +469,7 @@ export default function LoadingForm({
                             updateRow(row.id, 'roleName', e.target.value)
                           }
                         >
-                          {ROLE_OPTIONS.map((opt) => (
+                          {roleOptions.map((opt) => (
                             <option key={opt} value={opt}>
                               {opt}
                             </option>

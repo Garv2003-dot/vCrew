@@ -176,6 +176,132 @@ allocationRoutes.post('/instruction', async (req, res) => {
   }
 });
 
+/** Stream thinking steps then result for form demand (Roles form) */
+allocationRoutes.post('/demand/stream', async (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  const send = (event: string, data: unknown) => {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    if (typeof (res as any).flush === 'function') (res as any).flush();
+  };
+
+  try {
+    const demand: ProjectDemand = req.body;
+    let normalizedDemand = ensureDemandRoles(demand);
+    const { employees, projects } = await getAllocationData();
+
+    const result = await runMainOrchestrator(
+      {
+        userInput:
+          normalizedDemand.context ||
+          normalizedDemand.resourceDescription ||
+          'Structured demand',
+        demand: normalizedDemand,
+        loadingDemand: null,
+        currentProposal: null,
+        conversation: [],
+        employees,
+        projects,
+      },
+      (step) => {
+        send('thinking', { agent: step.agent, step: step.step, message: step.message });
+      }
+    );
+
+    if (!result.proposal) {
+      send('error', { error: 'No roles in demand. Add roles or provide a resource description.' });
+      res.end();
+      return;
+    }
+    send('result', { proposal: result.proposal });
+  } catch (err: any) {
+    send('error', { error: err?.message || 'Demand stream failed' });
+  } finally {
+    res.end();
+  }
+});
+
+/** Stream thinking steps then result for loading table demand */
+allocationRoutes.post('/loading-demand/stream', async (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  const send = (event: string, data: unknown) => {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    if (typeof (res as any).flush === 'function') (res as any).flush();
+  };
+
+  try {
+    const loading: LoadingDemand = req.body;
+    const { employees, projects } = await getAllocationData();
+
+    const result = await runMainOrchestrator(
+      {
+        userInput: 'Loading table demand',
+        demand: null,
+        loadingDemand: loading,
+        currentProposal: null,
+        conversation: [],
+        employees,
+        projects,
+      },
+      (step) => {
+        send('thinking', { agent: step.agent, step: step.step, message: step.message });
+      }
+    );
+
+    const proposal = result.proposal;
+    if (!proposal) {
+      send('error', { error: 'Failed to generate allocation from loading table.' });
+      res.end();
+      return;
+    }
+
+    const intervalLabel = loading.intervalLabel || 'Week';
+    const enrichedRoleAllocations = proposal.roleAllocations?.map((roleAlloc) => {
+      const loadingRow = loading.rows.find(
+        (r: LoadingRow) => r.roleName.toLowerCase() === roleAlloc.roleName.toLowerCase()
+      );
+      const intervals = loadingRow?.intervalAllocations || {};
+      const recCount = roleAlloc.recommendations.length;
+      const perPerson: Record<number, number> = {};
+      Object.entries(intervals).forEach(([idxStr, pct]) => {
+        const idx = Number(idxStr);
+        if (!Number.isNaN(idx) && pct > 0) {
+          perPerson[idx] = Math.round((pct as number) / recCount);
+        }
+      });
+      return {
+        ...roleAlloc,
+        recommendations: roleAlloc.recommendations.map((rec) => ({
+          ...rec,
+          allocationIntervals: Object.keys(perPerson).length ? perPerson : undefined,
+        })),
+      };
+    }) ?? [];
+
+    send('result', {
+      proposal: {
+        ...proposal,
+        roleAllocations: enrichedRoleAllocations,
+        loadingContext: loading,
+        intervalLabel,
+      },
+    });
+  } catch (err: any) {
+    send('error', { error: err?.message || 'Loading demand stream failed' });
+  } finally {
+    res.end();
+  }
+});
+
 /** Agentic endpoint: full orchestration with thinking steps, handles all input types */
 allocationRoutes.post('/agentic', async (req, res) => {
   console.log('[API] /agentic hit');

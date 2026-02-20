@@ -4,53 +4,51 @@ import { Card, Button, Input } from '@repo/ui';
 import { useAuth } from '../../context/auth-context';
 import Image from '../../../../../node_modules/next/image';
 
-
-
 type FieldErrors = {
   email?: string;
   password?: string;
   form?: string;
 };
- 
+
 export default function LoginPage() {
   const { login, isLoading } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
- 
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
   // inline errors
   const [errors, setErrors] = useState<FieldErrors>({});
- 
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
- 
+
     // Reset errors
     setErrors({});
- 
+
     // Basic client-side checks (optional)
     const temp: FieldErrors = {};
-    if (!email.trim()) temp.email = "Email/Username is required.";
-    if (!password.trim()) temp.password = "Password is required.";
+    if (!email.trim()) temp.email = 'Email/Username is required.';
+    if (!password.trim()) temp.password = 'Password is required.';
     if (Object.keys(temp).length > 0) {
       setErrors(temp);
       return;
     }
- 
+
     try {
       const res: any = await login(email, password);
- 
+
       if (!res.ok) {
         setErrors({ form: res.message });
         return;
       }
- 
+
       // Success: clear form
-      setEmail("");
-      setPassword("");
+      setEmail('');
+      setPassword('');
     } catch (err: any) {
       // If login() throws, set a generic error or parse message
       const msg =
         err?.message ||
-        "Invalid credentials. Please check your email and password.";
+        'Invalid credentials. Please check your email and password.';
       // If you can’t tell which field, show under both for clarity:
       setErrors({ email: msg, password: msg });
     }
@@ -61,43 +59,29 @@ export default function LoginPage() {
       {/* LEFT PANEL */}
       <aside className="relative col-span-2 flex items-center justify-center overflow-hidden bg-gradient-to-b from-slate-100 to-white">
         {/* Small 'V' triangle logo (top-left) */}
-       {/* Brand logo image (top-left) */}
-<div className="absolute left-4 top-4">
-  <Image
-    src="/logos/vCrew-Logo.png"
-    alt="vCrew logo"
-    width={60}              
-    height={60}
-    priority                 
-    className="select-none"
-  />
-</div>
+        {/* Brand logo image (top-left) */}
 
-       
-        
-
-<div className="flex flex-col items-center lg:items-start px-8 box-shadow:none">
-  <Image
-    src="/logos/vCrew-title.png"
-    alt="vCrew wordmark"
-    width={256}        
-    height={72}      
-    priority          
-    className="select-none"
-  />
-</div>
-
-
-       
+        <div className="flex flex-col items-center lg:items-start px-8 box-shadow:none">
+          <Image
+            src="/logos/vCrew-title.png"
+            alt="vCrew wordmark"
+            width={256}
+            height={72}
+            priority
+            className="select-none"
+          />
+        </div>
       </aside>
 
-      
       <main className="relative col-span-3 flex items-center justify-center bg-[#0C3671]">
-     
-        
-<div aria-hidden className="absolute left-0 top-0 h-full w-12 bg-[#2E63C7]" />
-  <div aria-hidden className="absolute left-8 top-0 h-full w-8  bg-[#1D4FA3]" />
-
+        <div
+          aria-hidden
+          className="absolute left-0 top-0 h-full w-12 bg-[#2E63C7]"
+        />
+        <div
+          aria-hidden
+          className="absolute left-8 top-0 h-full w-8  bg-[#1D4FA3]"
+        />
 
         {/* Content container */}
         <div className="relative w-full max-w-md px-6">
@@ -119,7 +103,7 @@ export default function LoginPage() {
                   type="text"
                   required
                   aria-invalid={!!errors.email}
-                  aria-describedby={errors.email ? "email-error" : undefined}
+                  aria-describedby={errors.email ? 'email-error' : undefined}
                   value={email}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     setEmail(e.target.value);
@@ -135,7 +119,7 @@ export default function LoginPage() {
                   </p>
                 )}
               </div>
- 
+
               {/* Password */}
               <div>
                 <Input
@@ -144,7 +128,7 @@ export default function LoginPage() {
                   required
                   aria-invalid={!!errors.password}
                   aria-describedby={
-                    errors.password ? "password-error" : undefined
+                    errors.password ? 'password-error' : undefined
                   }
                   value={password}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -160,7 +144,7 @@ export default function LoginPage() {
                   </p>
                 )}
               </div>
- 
+
               {/* General form error (fallback) */}
               {errors.form && (
                 <p
@@ -171,7 +155,7 @@ export default function LoginPage() {
                   {errors.form}
                 </p>
               )}
- 
+
               <Button
                 type="submit"
                 className="w-full rounded-md bg-[#2d72ff] hover:bg-[#1a5ee8] text-white"

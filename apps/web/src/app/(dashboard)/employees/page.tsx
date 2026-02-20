@@ -1,5 +1,5 @@
-"use client";
-import { Card } from "@repo/ui";
+'use client';
+import { Card } from '@repo/ui';
 import {
   MoreVertical,
   ChevronRight,
@@ -8,19 +8,19 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Filter,
-} from "lucide-react";
-import { useEffect, useState, useMemo } from "react";
-import { ENDPOINTS } from "../../../config/endpoints";
+} from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { ENDPOINTS } from '../../../config/endpoints';
 
 const statusToDisplay: Record<string, { label: string; color: string }> = {
-  ALLOCATED: { label: "Billable", color: "bg-blue-400" },
-  PARTIAL: { label: "Partially Allocated", color: "bg-amber-400" },
-  BENCH: { label: "Bench", color: "bg-yellow-400" },
-  SHADOW: { label: "Shadow", color: "bg-gray-400" },
-  ON_LEAVE: { label: "On Leave", color: "bg-red-400" },
+  ALLOCATED: { label: 'Billable', color: 'bg-blue-400' },
+  PARTIAL: { label: 'Partially Allocated', color: 'bg-amber-400' },
+  BENCH: { label: 'Bench', color: 'bg-yellow-400' },
+  SHADOW: { label: 'Shadow', color: 'bg-gray-400' },
+  ON_LEAVE: { label: 'On Leave', color: 'bg-red-400' },
 };
 
-const ITEMS_PER_PAGE = 10;
+const DEFAULT_ITEMS_PER_PAGE = 10;
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<
@@ -36,8 +36,9 @@ export default function EmployeesPage() {
     }[]
   >([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_ITEMS_PER_PAGE);
 
   useEffect(() => {
     fetch(ENDPOINTS.EMPLOYEES.LIST)
@@ -73,17 +74,47 @@ export default function EmployeesPage() {
 
   // Paginate filtered employees
   const paginatedEmployees = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
     return filteredEmployees.slice(startIndex, endIndex);
-  }, [filteredEmployees, currentPage]);
+  }, [filteredEmployees, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
 
-  // Reset to page 1 when search changes
+  // Reset to page 1 when search or itemsPerPage changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, itemsPerPage]);
+
+  // Calculate actual statistics from current employees list
+  const stats = useMemo(() => {
+    const total = employees.length;
+    const billableCount = employees.filter(
+      (e) => e.status === 'ALLOCATED',
+    ).length;
+    const nonBillableShadowCount = employees.filter((e) =>
+      ['BENCH', 'SHADOW', 'ON_LEAVE'].includes(e.status),
+    ).length;
+    const benchCount = employees.filter((e) => e.status === 'BENCH').length;
+    // Assuming new hires as employees with <= 6 months experience
+    const newHiresCount = employees.filter(
+      (e) => e.totalExpMonths !== undefined && e.totalExpMonths <= 6,
+    ).length;
+
+    return {
+      total,
+      billableCount,
+      billablePerc: total ? Math.round((billableCount / total) * 100) : 0,
+      nonBillableShadowCount,
+      nonBillableShadowPerc: total
+        ? Math.round((nonBillableShadowCount / total) * 100)
+        : 0,
+      benchCount,
+      benchPerc: total ? Math.round((benchCount / total) * 100) : 0,
+      newHiresCount,
+      newHiresPerc: total ? Math.round((newHiresCount / total) * 100) : 0,
+    };
+  }, [employees]);
 
   return (
     <div className="min-h-screen bg-gray-50/50 p-6 flex gap-6 font-sans">
@@ -97,141 +128,171 @@ export default function EmployeesPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Total Employees - Adjusted layout to prevent squashing and fix progress bar */}
-          <Card className="p-5 flex flex-col justify-between shadow-sm border-gray-100">
-            <div className="flex justify-between items-start">
-              <span className="text-sm font-semibold text-gray-600">
-                Total Employees
-              </span>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-600">
-                <ArrowUpRight className="w-3 h-3 mr-1" />
-                +35%
-              </span>
+          {/* Total Employees */}
+          <div className="relative group cursor-help transition-all">
+            {/* Tooltip */}
+            <div className="pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2 w-48 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-[10px] leading-tight rounded py-2 px-3 z-10 text-center shadow-lg">
+              Total number of active employees registered in the database.
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
             </div>
-            <div className="flex flex-col gap-2">
-              <span className="text-5xl font-bold text-gray-900 leading-none">
-                24%
-              </span>
-              <div className="w-full bg-blue-50 h-2 rounded-full mt-2 overflow-hidden">
-                <div
-                  className="bg-blue-600 h-2 rounded-full"
-                  style={{ width: "24%" }}
-                ></div>
+            <Card className="p-5 flex flex-col justify-between shadow-sm border-gray-100 h-full group-hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start">
+                <span className="text-sm font-semibold text-gray-600">
+                  Total Employees
+                </span>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-600">
+                  Current
+                </span>
               </div>
-            </div>
-          </Card>
+              <div className="flex flex-col gap-2 mt-4">
+                <span className="text-5xl font-bold text-gray-900 leading-none">
+                  {stats.total}
+                </span>
+                <div className="w-full bg-blue-50 h-2 rounded-full mt-2 overflow-hidden">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                    style={{ width: '100%' }}
+                  ></div>
+                </div>
+              </div>
+            </Card>
+          </div>
 
-          {/* Billable Stats - Adjusted layout */}
-          <Card className="p-5 flex flex-col justify-between shadow-sm border-gray-100">
-            <div className="space-y-4 flex-1 flex flex-col justify-around">
-              <div>
-                <div className="flex justify-between mb-1 items-center">
-                  <span className="text-sm font-semibold text-gray-900">
-                    Billable
-                  </span>
-                  <span className="text-xs font-medium text-blue-500 flex items-center bg-blue-50 px-1 rounded">
-                    <ArrowUpRight className="w-3 h-3 mr-0.5" />
-                    +24%
-                  </span>
-                </div>
-                <div className="text-2xl font-bold text-gray-900">250</div>
-                <div className="w-full bg-gray-100 h-1 rounded-full mt-2">
-                  <div
-                    className="bg-blue-400 h-1 rounded-full"
-                    style={{ width: "65%" }}
-                  ></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-1 items-center">
-                  <span className="text-sm font-semibold text-gray-500">
-                    Non-Billable/Shadow
-                  </span>
-                  <span className="text-xs font-medium text-red-500 flex items-center bg-red-50 px-1 rounded">
-                    <ArrowDownRight className="w-3 h-3 mr-0.5" />
-                    +12%
-                  </span>
-                </div>
-                <div className="text-xl font-bold text-gray-900">125</div>
-                <div className="w-full bg-gray-100 h-1 rounded-full mt-2">
-                  <div
-                    className="bg-red-300 h-1 rounded-full"
-                    style={{ width: "35%" }}
-                  ></div>
-                </div>
-              </div>
+          {/* Billable Stats */}
+          <div className="relative group cursor-help transition-all">
+            <div className="pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2 w-52 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-[10px] leading-tight rounded py-2 px-3 z-10 text-center shadow-lg">
+              Employees currently allocated to billable projects vs non-billable
+              states (bench, shadow, leave).
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
             </div>
-          </Card>
+            <Card className="p-5 flex flex-col justify-between shadow-sm border-gray-100 h-full group-hover:shadow-md transition-shadow">
+              <div className="space-y-4 flex-1 flex flex-col justify-around">
+                <div>
+                  <div className="flex justify-between mb-1 items-center">
+                    <span className="text-sm font-semibold text-gray-900">
+                      Billable
+                    </span>
+                    <span className="text-xs font-medium text-blue-500 flex items-center bg-blue-50 px-1 rounded">
+                      {stats.billablePerc}%
+                    </span>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {stats.billableCount}
+                  </div>
+                  <div className="w-full bg-gray-100 h-1 rounded-full mt-2">
+                    <div
+                      className="bg-blue-400 h-1 rounded-full transition-all duration-500"
+                      style={{ width: `${stats.billablePerc}%` }}
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1 items-center">
+                    <span className="text-sm font-semibold text-gray-500">
+                      Non-Billable/Shadow
+                    </span>
+                    <span className="text-xs font-medium text-red-500 flex items-center bg-red-50 px-1 rounded">
+                      {stats.nonBillableShadowPerc}%
+                    </span>
+                  </div>
+                  <div className="text-xl font-bold text-gray-900">
+                    {stats.nonBillableShadowCount}
+                  </div>
+                  <div className="w-full bg-gray-100 h-1 rounded-full mt-2">
+                    <div
+                      className="bg-red-300 h-1 rounded-full transition-all duration-500"
+                      style={{ width: `${stats.nonBillableShadowPerc}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
 
-          {/* New Hires Stats - Adjusted layout */}
-          <Card className="p-5 flex flex-col justify-between shadow-sm border-gray-100">
-            <div className="space-y-4 flex-1 flex flex-col justify-around">
-              <div>
-                <div className="flex justify-between mb-1 items-center">
-                  <span className="text-sm font-semibold text-gray-900">
-                    New Hires
-                  </span>
-                  <span className="text-xs font-medium text-green-500 flex items-center bg-green-50 px-1 rounded">
-                    <ArrowUpRight className="w-3 h-3 mr-0.5" />
-                    +12%
-                  </span>
-                </div>
-                <div className="text-2xl font-bold text-gray-900">50</div>
-                <div className="w-full bg-gray-100 h-1 rounded-full mt-2">
-                  <div
-                    className="bg-green-400 h-1 rounded-full"
-                    style={{ width: "50%" }}
-                  ></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-1 items-center">
-                  <span className="text-sm font-semibold text-gray-900">
-                    Bench
-                  </span>
-                  <span className="text-xs font-medium text-yellow-500 flex items-center bg-yellow-50 px-1 rounded">
-                    <ArrowDownRight className="w-3 h-3 mr-0.5" />
-                    -4%
-                  </span>
-                </div>
-                <div className="text-xl font-bold text-gray-900">30</div>
-                <div className="w-full bg-gray-100 h-1 rounded-full mt-2">
-                  <div
-                    className="bg-yellow-400 h-1 rounded-full"
-                    style={{ width: "20%" }}
-                  ></div>
-                </div>
-              </div>
+          {/* New Hires Stats */}
+          <div className="relative group cursor-help transition-all">
+            <div className="pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2 w-48 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-[10px] leading-tight rounded py-2 px-3 z-10 text-center shadow-lg">
+              New hires (&le;6 months exp) and total employees currently fully
+              on the bench.
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
             </div>
-          </Card>
+            <Card className="p-5 flex flex-col justify-between shadow-sm border-gray-100 h-full group-hover:shadow-md transition-shadow">
+              <div className="space-y-4 flex-1 flex flex-col justify-around">
+                <div>
+                  <div className="flex justify-between mb-1 items-center">
+                    <span className="text-sm font-semibold text-gray-900">
+                      New Hires
+                    </span>
+                    <span className="text-xs font-medium text-green-500 flex items-center bg-green-50 px-1 rounded">
+                      {stats.newHiresPerc}%
+                    </span>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {stats.newHiresCount}
+                  </div>
+                  <div className="w-full bg-gray-100 h-1 rounded-full mt-2">
+                    <div
+                      className="bg-green-400 h-1 rounded-full transition-all duration-500"
+                      style={{ width: `${stats.newHiresPerc}%` }}
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1 items-center">
+                    <span className="text-sm font-semibold text-gray-900">
+                      Bench
+                    </span>
+                    <span className="text-xs font-medium text-yellow-500 flex items-center bg-yellow-50 px-1 rounded">
+                      {stats.benchPerc}%
+                    </span>
+                  </div>
+                  <div className="text-xl font-bold text-gray-900">
+                    {stats.benchCount}
+                  </div>
+                  <div className="w-full bg-gray-100 h-1 rounded-full mt-2">
+                    <div
+                      className="bg-yellow-400 h-1 rounded-full transition-all duration-500"
+                      style={{ width: `${stats.benchPerc}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
 
-          {/* Growth Chart - Explicit height and flex growth for graph visibility */}
-          <Card className="p-5 flex flex-col shadow-sm border-gray-100 bg-white">
-            <div className="flex justify-between items-start mb-4">
-              <span className="text-sm font-semibold text-gray-600">
-                Growth This Year
-              </span>
+          {/* Growth Chart */}
+          <div className="relative group cursor-help transition-all">
+            <div className="pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2 w-48 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-[10px] leading-tight rounded py-2 px-3 z-10 text-center shadow-lg">
+              Employee growth distribution across the current year (mocked
+              trend).
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
             </div>
-            {/* Added h-24 to force height for the bars container */}
-            <div className="flex-1 flex items-end justify-between gap-2 px-2 h-24">
-              {[40, 65, 45, 80, 55, 90, 70].map((h, i) => (
-                <div
-                  key={i}
-                  className="w-3 bg-indigo-50 rounded-t-sm relative h-full flex items-end group"
-                >
+            <Card className="p-5 flex flex-col shadow-sm border-gray-100 bg-white h-full group-hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-4">
+                <span className="text-sm font-semibold text-gray-600">
+                  Growth This Year
+                </span>
+              </div>
+              <div className="flex-1 flex items-end justify-between gap-2 px-2 h-24">
+                {[40, 65, 45, 80, 55, 90, 70].map((h, i) => (
                   <div
-                    className="w-full bg-indigo-500 rounded-t-sm transition-all duration-300 group-hover:bg-indigo-600"
-                    style={{ height: `${h}%` }}
-                  ></div>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-between text-[10px] text-gray-400 mt-2 px-1">
-              <span>Jan</span>
-              <span>Jun</span>
-              <span>Dec</span>
-            </div>
-          </Card>
+                    key={i}
+                    className="w-3 bg-indigo-50 rounded-t-sm relative h-full flex items-end group"
+                  >
+                    <div
+                      className="w-full bg-indigo-500 rounded-t-sm transition-all duration-300 group-hover:bg-indigo-600"
+                      style={{ height: `${h}%` }}
+                    ></div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between text-[10px] text-gray-400 mt-2 px-1">
+                <span>Jan</span>
+                <span>Jun</span>
+                <span>Dec</span>
+              </div>
+            </Card>
+          </div>
         </div>
 
         {/* Filter and Search Section (Moved below cards) */}
@@ -247,12 +308,6 @@ export default function EmployeesPage() {
             />
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
           </div>
-
-          {/* Filter Button */}
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 shadow-sm transition-all">
-            <Filter className="w-4 h-4" />
-            <span>Filter</span>
-          </button>
         </div>
 
         {/* Employee Table */}
@@ -295,8 +350,8 @@ export default function EmployeesPage() {
                     className="px-6 py-12 text-center text-gray-500"
                   >
                     {searchQuery
-                      ? "No employees found matching your search."
-                      : "No employees found."}
+                      ? 'No employees found matching your search.'
+                      : 'No employees found.'}
                   </td>
                 </tr>
               ) : (
@@ -330,7 +385,7 @@ export default function EmployeesPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-gray-500 text-xs font-medium">
-                        {emp.totalExpMonths ?? "—"}
+                        {emp.totalExpMonths ?? '—'}
                       </td>
                     </tr>
                   );
@@ -338,16 +393,29 @@ export default function EmployeesPage() {
               )}
             </tbody>
           </table>
-          <div className="px-6 py-3 border-t border-gray-50 bg-gray-50/50 flex items-center justify-between text-xs text-gray-400 font-medium">
-            <div className="flex items-center gap-2">
+          <div className="px-6 py-3 border-t border-gray-50 bg-gray-50/50 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-400 font-medium">
+            <div className="flex items-center gap-4">
               <span>
-                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
-                {Math.min(
-                  currentPage * ITEMS_PER_PAGE,
-                  filteredEmployees.length,
-                )}{" "}
+                Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
+                {Math.min(currentPage * itemsPerPage, filteredEmployees.length)}{' '}
                 of {filteredEmployees.length} employees
               </span>
+              <div className="flex items-center gap-2">
+                <label htmlFor="itemsPerPage" className="text-gray-500">
+                  Rows per page:
+                </label>
+                <select
+                  id="itemsPerPage"
+                  value={itemsPerPage}
+                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                  className="bg-white border border-gray-200 text-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500 hover:bg-gray-50 cursor-pointer transition-colors"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -379,38 +447,38 @@ export default function EmployeesPage() {
 
 const NOTIFICATIONS = [
   {
-    initial: "J",
-    name: "James Robinson",
-    message: "I need some maintenac...",
-    time: "Jan 2, 12:31pm",
-    color: "bg-teal-400",
+    initial: 'J',
+    name: 'James Robinson',
+    message: 'I need some maintenac...',
+    time: 'Jan 2, 12:31pm',
+    color: 'bg-teal-400',
   },
   {
-    initial: "E",
-    name: "Eseosa Igbinobaro",
-    message: "I got your email ad and ...",
-    time: "Wed, 06:00pm",
-    color: "bg-rose-700",
+    initial: 'E',
+    name: 'Eseosa Igbinobaro',
+    message: 'I got your email ad and ...',
+    time: 'Wed, 06:00pm',
+    color: 'bg-rose-700',
   },
   {
-    initial: "J",
-    name: "James Robinson",
-    message: "I need some maintenac...",
-    time: "Jan 2, 12:31pm",
-    color: "bg-teal-400",
+    initial: 'J',
+    name: 'James Robinson',
+    message: 'I need some maintenac...',
+    time: 'Jan 2, 12:31pm',
+    color: 'bg-teal-400',
   },
   {
-    initial: "L",
-    name: "Lupita Jonah",
-    message: "Thank you so much for ...",
-    time: "Feb 13, 06:15pm",
-    color: "bg-orange-400",
+    initial: 'L',
+    name: 'Lupita Jonah',
+    message: 'Thank you so much for ...',
+    time: 'Feb 13, 06:15pm',
+    color: 'bg-orange-400',
   },
   {
-    initial: "G",
-    name: "Garrit James",
-    message: "Application pending check...",
-    time: "Mar 1, 10:00pm",
-    color: "bg-orange-400",
+    initial: 'G',
+    name: 'Garrit James',
+    message: 'Application pending check...',
+    time: 'Mar 1, 10:00pm',
+    color: 'bg-orange-400',
   },
 ];

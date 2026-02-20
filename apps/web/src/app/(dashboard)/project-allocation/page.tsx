@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ProjectDemand,
   AllocationProposal,
@@ -14,10 +14,11 @@ import LoadingForm from './LoadingForm';
 import ProposedTeamPanel from './ProposedTeamPanel';
 import FullScreenLoader from './FullScreenLoader';
 
-type DemandMode = 'simple' | 'loading';
+/** Only one of these is active at a time: Roles (add rows or multiline), Loading table, or Free text (chat). */
+type DemandMode = 'roles' | 'loading' | 'freetext';
 
 export default function ProjectAllocationPage() {
-  const [demandMode, setDemandMode] = useState<DemandMode>('simple');
+  const [demandMode, setDemandMode] = useState<DemandMode>('roles');
   const [allocationStage, setAllocationStage] = useState<'FORM' | 'RESULTS'>(
     'FORM',
   );
@@ -30,6 +31,23 @@ export default function ProjectAllocationPage() {
   const [thinkingSteps, setThinkingSteps] = useState<{ agent: string; step: string; message: string }[]>([]);
   const [lastDemand, setLastDemand] = useState<Partial<ProjectDemand>>({});
   const [agentMemory, setAgentMemory] = useState<AgentMemoryEntry[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const mainContentRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = mainContentRef.current;
+    if (!el) return;
+    const raf = requestAnimationFrame(() => {
+      el.scrollTo(0, 0);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -42,19 +60,61 @@ export default function ProjectAllocationPage() {
   const handleGenerate = async (demand: ProjectDemand) => {
     setIsGenerating(true);
     setLastDemand(demand);
+    setThinkingSteps([]);
     try {
-      const res = await fetch(ENDPOINTS.ALLOCATION.DEMAND, {
+      const res = await fetch(ENDPOINTS.ALLOCATION.DEMAND_STREAM, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(demand),
       });
-      const data = await res.json();
-      if (!res.ok) {
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => ({}));
         throw new Error(data?.error || `Request failed: ${res.status}`);
       }
-      setProposal(data);
-      setAllocationStage('RESULTS');
-      setAllocationSource('FORM');
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let finalProposal: AllocationProposal | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split('\n\n');
+        buffer = events.pop() || '';
+
+        for (const block of events) {
+          let eventType = '';
+          let dataStr = '';
+          for (const line of block.split('\n')) {
+            if (line.startsWith('event: ')) eventType = line.slice(7).trim();
+            else if (line.startsWith('data: ')) dataStr = line.slice(6);
+          }
+          if (!dataStr) continue;
+          try {
+            const data = JSON.parse(dataStr);
+            if (eventType === 'thinking') {
+              setThinkingSteps((prev) => [
+                ...prev,
+                { agent: data.agent || 'agent', step: data.step || '', message: data.message || '' },
+              ]);
+            } else if (eventType === 'result') {
+              finalProposal = data.proposal ?? null;
+            } else if (eventType === 'error') {
+              throw new Error(data.error || 'Stream error');
+            }
+          } catch (e) {
+            if (e instanceof SyntaxError) continue;
+            throw e;
+          }
+        }
+      }
+
+      if (finalProposal) {
+        setProposal(finalProposal);
+        setAllocationStage('RESULTS');
+        setAllocationSource('FORM');
+      }
     } catch (e) {
       console.error('Failed to generate allocation', e);
       setMessages((prev) => [
@@ -63,27 +123,75 @@ export default function ProjectAllocationPage() {
       ]);
     } finally {
       setIsGenerating(false);
+      setThinkingSteps([]);
     }
   };
 
   const handleLoadingGenerate = async (loading: LoadingDemand) => {
     setIsGenerating(true);
     setLastDemand(loading as unknown as ProjectDemand);
+    setThinkingSteps([]);
 
     try {
-      const res = await fetch(ENDPOINTS.ALLOCATION.LOADING_DEMAND, {
+      const res = await fetch(ENDPOINTS.ALLOCATION.LOADING_DEMAND_STREAM, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(loading),
       });
-      const data = await res.json();
-      setProposal(data);
-      setAllocationStage('RESULTS');
-      setAllocationSource('FORM');
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || `Request failed: ${res.status}`);
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let finalProposal: AllocationProposal | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split('\n\n');
+        buffer = events.pop() || '';
+
+        for (const block of events) {
+          let eventType = '';
+          let dataStr = '';
+          for (const line of block.split('\n')) {
+            if (line.startsWith('event: ')) eventType = line.slice(7).trim();
+            else if (line.startsWith('data: ')) dataStr = line.slice(6);
+          }
+          if (!dataStr) continue;
+          try {
+            const data = JSON.parse(dataStr);
+            if (eventType === 'thinking') {
+              setThinkingSteps((prev) => [
+                ...prev,
+                { agent: data.agent || 'agent', step: data.step || '', message: data.message || '' },
+              ]);
+            } else if (eventType === 'result') {
+              finalProposal = data.proposal ?? null;
+            } else if (eventType === 'error') {
+              throw new Error(data.error || 'Stream error');
+            }
+          } catch (e) {
+            if (e instanceof SyntaxError) continue;
+            throw e;
+          }
+        }
+      }
+
+      if (finalProposal) {
+        setProposal(finalProposal);
+        setAllocationStage('RESULTS');
+        setAllocationSource('FORM');
+      }
     } catch (e) {
       console.error('Failed to generate allocation', e);
+      setToast('Failed to generate allocation. Please try again.');
     } finally {
       setIsGenerating(false);
+      setThinkingSteps([]);
     }
   };
 
@@ -226,6 +334,7 @@ export default function ProjectAllocationPage() {
   };
 
   const handleApprove = () => {
+    setToast('Allocation approved and added.');
     setMessages((prev) => [
       ...prev,
       {
@@ -235,14 +344,18 @@ export default function ProjectAllocationPage() {
     ]);
   };
 
+  /** Clear allocation: reset proposal, stage, messages, lastDemand, and agent memory so next request gives unique results. */
   const handleDiscard = () => {
     setProposal(null);
     setAllocationStage('FORM');
-    setMessages((prev) => [
-      ...prev,
-      { role: 'assistant', content: 'Allocation discarded/cleared.' },
-    ]);
+    setLastDemand({});
     setAgentMemory([]);
+    setMessages([
+      {
+        role: 'assistant',
+        content: 'Allocation cleared. You can start a new request with roles, loading table, or Agentic AI.',
+      },
+    ]);
   };
 
   const undoLastChange = () => {
@@ -274,41 +387,52 @@ export default function ProjectAllocationPage() {
   };
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-gray-100 z-0 pt-16 pl-[216px]">
-      {/* Full Screen Loader Overlay */}
-      {isGenerating && <FullScreenLoader />}
+    <div className="flex flex-col flex-1 min-h-0 bg-gray-100">
+      {/* Toast */}
+      {toast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium shadow-lg animate-in fade-in duration-200">
+          {toast}
+        </div>
+      )}
 
-      {/* Two-column layout */}
-      <div className="flex-1 flex gap-6 p-6 lg:p-8 overflow-hidden">
-        {/* Left: Main form / results area */}
-        <div className="flex-1 min-w-0 overflow-y-auto">
+      {/* Full Screen Loader Overlay */}
+      {isGenerating && <FullScreenLoader thinkingSteps={thinkingSteps} />}
+
+      {/* Two-column layout – no fixed pl; Layout main already has responsive padding for sidebar */}
+      <div className="flex-1 flex gap-6 p-6 lg:p-8 overflow-hidden min-h-0">
+        {/* Main form / results area (single column; chat inline when Agentic AI) */}
+        <div
+          ref={mainContentRef}
+          className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden"
+          style={{ overflowAnchor: 'none' }}
+        >
           <div className="space-y-6">
-            {/* Header with Title and Toggle */}
+            {/* Header: Title + 3 modes (only one active at a time) */}
             <div className="flex justify-between items-center flex-wrap gap-4">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
                   Project Allocation
                 </h1>
                 <p className="text-sm text-gray-500 mt-1">
-                  Define requirements and let AI suggest the best team.
+                  Use one: Roles (add rows or multiline), Loading table, or Agentic AI (chat).
                 </p>
               </div>
               <div className="flex rounded-lg border border-gray-200 p-1 bg-white shadow-sm">
                 <button
                   type="button"
-                  onClick={() => setDemandMode('simple')}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition ${
-                    demandMode === 'simple'
+                  onClick={() => setDemandMode('roles')}
+                  className={`px-3 py-2 text-sm font-medium rounded-md transition ${
+                    demandMode === 'roles'
                       ? 'bg-blue-100 text-blue-700'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   }`}
                 >
-                  Simple Demand
+                  Roles
                 </button>
                 <button
                   type="button"
                   onClick={() => setDemandMode('loading')}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition ${
+                  className={`px-3 py-2 text-sm font-medium rounded-md transition ${
                     demandMode === 'loading'
                       ? 'bg-blue-100 text-blue-700'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -316,29 +440,52 @@ export default function ProjectAllocationPage() {
                 >
                   Loading Table
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setDemandMode('freetext')}
+                  className={`px-3 py-2 text-sm font-medium rounded-md transition ${
+                    demandMode === 'freetext'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  Agentic AI
+                </button>
               </div>
             </div>
 
-            {/* Content area */}
-            <div className="min-h-[calc(100vh-200px)] relative">
+            {/* Content: roles/loading form, or Agentic AI chat inline; no right-side chat */}
+            <div className="min-h-[calc(100vh-220px)] relative flex flex-col">
               <div
-                className={`transition-opacity duration-500 ease-in-out ${
+                className={`flex-1 flex flex-col min-h-0 transition-opacity duration-500 ease-in-out ${
                   allocationStage === 'FORM'
                     ? 'opacity-100'
                     : 'opacity-0 absolute inset-0 pointer-events-none'
                 }`}
               >
-                {demandMode === 'loading' ? (
+                {demandMode === 'loading' && (
                   <LoadingForm
                     onSubmit={handleLoadingGenerate}
                     isLoading={isGenerating}
                   />
-                ) : (
+                )}
+                {demandMode === 'roles' && (
                   <ProjectRequirementsForm
                     onSubmit={handleGenerate}
                     isLoading={isGenerating}
                     initialValues={lastDemand}
                   />
+                )}
+                {demandMode === 'freetext' && (
+                  <div className="flex-1 min-h-[400px] flex flex-col rounded-lg border border-gray-200 bg-white overflow-hidden shadow-sm">
+                    <AIAssistantPanel
+                      messages={messages}
+                      onSendMessage={handleChatInstruction}
+                      isThinking={isAgentThinking}
+                      thinkingSteps={thinkingSteps}
+                      className="flex-1 min-h-0"
+                    />
+                  </div>
                 )}
               </div>
 
@@ -362,17 +509,6 @@ export default function ProjectAllocationPage() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Right: AI Chat panel (always visible) */}
-        <div className="w-96 shrink-0 hidden lg:flex flex-col">
-          <AIAssistantPanel
-            messages={messages}
-            onSendMessage={handleChatInstruction}
-            isThinking={isAgentThinking}
-            thinkingSteps={thinkingSteps}
-            className="h-full"
-          />
         </div>
       </div>
     </div>
