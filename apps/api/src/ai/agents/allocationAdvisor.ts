@@ -14,42 +14,134 @@ import { createHash } from 'crypto';
 // Demand roles (e.g. "Senior Frontend Developer", "Project Manager") match employees by role or job_title.
 const ROLE_SYNONYMS: Record<string, string[]> = {
   backend: [
-    'backend', 'back end', 'server', 'api', 'node', 'java', 'go', 'python',
-    'ror', 'ruby', '.net', 'net', 'architect', 'full-stack', 'full stack',
-    'python/sql', 'backend - java', 'senior software engineer', 'software engineer',
-    'senior developer', 'technical lead', 'technical architect', 'team lead',
+    'backend',
+    'back end',
+    'server',
+    'api',
+    'node',
+    'java',
+    'go',
+    'python',
+    'ror',
+    'ruby',
+    '.net',
+    'net',
+    'architect',
+    'full-stack',
+    'full stack',
+    'python/sql',
+    'backend - java',
+    'senior software engineer',
+    'software engineer',
+    'senior developer',
+    'technical lead',
+    'technical architect',
+    'team lead',
   ],
   frontend: [
-    'frontend', 'front end', 'fe engineer', 'fe ', 'ui', 'react', 'angular', 'vue', 'web',
-    'frontend developer', 'front end developer', 'full-stack', 'full stack',
-    'senior developer', 'software engineer', 'technical lead', 'team lead',
-    '.net engineers', 'ui/ux', 'ux ', 'figma', 'dev - full stack', 'dev- full stack',
+    'frontend',
+    'front end',
+    'fe engineer',
+    'fe ',
+    'ui',
+    'react',
+    'angular',
+    'vue',
+    'web',
+    'frontend developer',
+    'front end developer',
+    'full-stack',
+    'full stack',
+    'senior developer',
+    'software engineer',
+    'technical lead',
+    'team lead',
+    '.net engineers',
+    'ui/ux',
+    'ux ',
+    'figma',
+    'dev - full stack',
+    'dev- full stack',
   ],
   devops: [
-    'devops', 'dev-ops', 'infra', 'sre', 'cloud', 'aws', 'platform',
-    'docker', 'kubernetes', 'devops operator', 'devops consultant',
+    'devops',
+    'dev-ops',
+    'infra',
+    'sre',
+    'cloud',
+    'aws',
+    'platform',
+    'docker',
+    'kubernetes',
+    'devops operator',
+    'devops consultant',
   ],
   mobile: ['mobile', 'ios', 'android', 'react native', 'flutter'],
   qa: [
-    'qa', 'testing', 'automation', 'sdet', 'quality assurance',
-    'qa engineer', 'qa automation', 'tech lead - qa', 'tech lead- qa',
-    'team lead qa', 'consultant test engineer', 'selenium', 'cypress',
+    'qa',
+    'testing',
+    'automation',
+    'sdet',
+    'quality assurance',
+    'qa engineer',
+    'qa automation',
+    'tech lead - qa',
+    'tech lead- qa',
+    'team lead qa',
+    'consultant test engineer',
+    'selenium',
+    'cypress',
   ],
   design: [
-    'design', 'ux', 'ui', 'product designer', 'ui/ux', 'figma',
-    'team lead ui/ux', 'ui/ux consultant', 'ux sme',
+    'design',
+    'ux',
+    'ui',
+    'product designer',
+    'ui/ux',
+    'figma',
+    'team lead ui/ux',
+    'ui/ux consultant',
+    'ux sme',
   ],
   manager: [
-    'manager', 'lead', 'director', 'project manager', 'product manager',
-    'delivery manager', 'scrum master', 'scrum', 'product analyst',
-    'engagement lead', 'senior ba', 'ba', 'business analyst',
-    'technical pm', 'senior project manager', 'senior product manager',
-    'senior manager', 'vice president', 'avp', 'svp', 'vp',
-    'associate vice president', 'chief ', 'cto', 'coo', 'cfo',
+    'manager',
+    'lead',
+    'director',
+    'project manager',
+    'product manager',
+    'delivery manager',
+    'scrum master',
+    'scrum',
+    'product analyst',
+    'engagement lead',
+    'senior ba',
+    'ba',
+    'business analyst',
+    'technical pm',
+    'senior project manager',
+    'senior product manager',
+    'senior manager',
+    'vice president',
+    'avp',
+    'svp',
+    'vp',
+    'associate vice president',
+    'chief ',
+    'cto',
+    'coo',
+    'cfo',
   ],
   data: [
-    'data engineer', 'data-qa', 'data/bi', 'bi developer', 'databricks',
-    'data - sql', 'data - aiml', 'data bricks', 'lead data', 'senior data engineer',
+    'data engineer',
+    'data-qa',
+    'data/bi',
+    'bi developer',
+    'databricks',
+    'data - sql',
+    'data - aiml',
+    'data bricks',
+    'lead data',
+    'senior data engineer',
   ],
 };
 
@@ -87,7 +179,11 @@ interface CacheEntry {
 const allocationCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
 
-function createCacheKey(demand: ProjectDemand, employees: Employee[], projects: Project[] = []): string {
+function createCacheKey(
+  demand: ProjectDemand,
+  employees: Employee[],
+  projects: Project[] = [],
+): string {
   // Create hash from demand roles + employee IDs (for availability changes) + relevant project state
   const demandKey = JSON.stringify({
     projectName: demand.projectName,
@@ -99,10 +195,19 @@ function createCacheKey(demand: ProjectDemand, employees: Employee[], projects: 
       requiredSkills: r.requiredSkills?.map((s) => s.name).sort(),
     })),
   });
-  const employeeKey = employees.map((e) => `${(e as any).employeeId ?? e.id}:${e.availabilityPercent}`).sort().join(',');
+  const employeeKey = employees
+    .map((e) => `${(e as any).employeeId ?? e.id}:${e.availabilityPercent}`)
+    .sort()
+    .join(',');
   // Include relevant project state (if existing project, include assigned employees)
-  const projectKey = demand.projectId 
-    ? projects.find((p) => p.id === demand.projectId)?.assignedEmployees?.map((a) => `${a.employeeId}:${a.allocationPercent}`).sort().join(',') || ''
+  const projectKey = demand.projectId
+    ? projects
+        .find((p) => p.id === demand.projectId)
+        ?.assignedEmployees?.map(
+          (a) => `${a.employeeId}:${a.allocationPercent}`,
+        )
+        .sort()
+        .join(',') || ''
     : '';
   const combined = `${demandKey}|${employeeKey}|${projectKey}`;
   return createHash('sha256').update(combined).digest('hex');
@@ -111,13 +216,13 @@ function createCacheKey(demand: ProjectDemand, employees: Employee[], projects: 
 function getCachedAllocation(key: string): AllocationProposal | null {
   const entry = allocationCache.get(key);
   if (!entry) return null;
-  
+
   const age = Date.now() - entry.timestamp;
   if (age > CACHE_TTL_MS) {
     allocationCache.delete(key);
     return null;
   }
-  
+
   return entry.proposal;
 }
 
@@ -126,7 +231,7 @@ function setCachedAllocation(key: string, proposal: AllocationProposal): void {
     proposal,
     timestamp: Date.now(),
   });
-  
+
   // Cleanup old entries periodically (simple cleanup on every 10th set)
   if (allocationCache.size > 100) {
     const now = Date.now();
@@ -162,15 +267,37 @@ function resolvePrimarySkills(
     const check = (syns: string[]) =>
       syns.some((s) => roleLower.includes(s) || roleNorm.includes(s));
     if (check(ROLE_SYNONYMS.frontend))
-      return ['React', 'Angular', 'JavaScript', 'TypeScript', 'Vue.js', 'HTML', 'CSS'];
+      return [
+        'React',
+        'Angular',
+        'JavaScript',
+        'TypeScript',
+        'Vue.js',
+        'HTML',
+        'CSS',
+      ];
     if (check(ROLE_SYNONYMS.backend))
-      return ['Node.js', 'Java', 'Python', 'PostgreSQL', 'Ruby', 'Ruby on Rails', '.Net', 'C#'];
+      return [
+        'Node.js',
+        'Java',
+        'Python',
+        'PostgreSQL',
+        'Ruby',
+        'Ruby on Rails',
+        '.Net',
+        'C#',
+      ];
     if (check(ROLE_SYNONYMS.devops))
       return ['Docker', 'Kubernetes', 'AWS', 'CI/CD', 'Azure'];
     if (check(ROLE_SYNONYMS.qa))
-      return ['Selenium', 'Cypress', 'Automation testing', 'API Testing', 'Jest'];
-    if (check(ROLE_SYNONYMS.manager))
-      return []; // PM/manager: match by role/job_title only; optional skills Jira/Scrum
+      return [
+        'Selenium',
+        'Cypress',
+        'Automation testing',
+        'API Testing',
+        'Jest',
+      ];
+    if (check(ROLE_SYNONYMS.manager)) return []; // PM/manager: match by role/job_title only; optional skills Jira/Scrum
     if (check(ROLE_SYNONYMS.design))
       return ['Figma', 'Sketch', 'AdobeXD', 'UI/UX'];
     if (ROLE_SYNONYMS.data && check(ROLE_SYNONYMS.data))
@@ -221,15 +348,12 @@ export function normalizeProjectDemand(
       // Merge: Ensure canonicalRoles contains these, with AT LEAST this headcount
       existingRolesMap.forEach((count, role) => {
         const existingDemandRole = canonicalRoles.find(
-          (r) => r.roleName === role,
+          (r) => normalizeRoleText(r.roleName) === normalizeRoleText(role),
         );
         if (existingDemandRole) {
           // Drift prevention: The demand SHOULD reflect reality + openness
           // If demand says 0 but we have 2, demand is 2 (filled).
-          existingDemandRole.headcount = Math.max(
-            existingDemandRole.headcount,
-            count,
-          );
+          existingDemandRole.headcount += count;
         } else {
           // Add implied role from existing team
           canonicalRoles.push({
@@ -301,7 +425,9 @@ function resolveCandidates(
     if (!requiredSkills || requiredSkills.length === 0) return true;
 
     const employeeSkills = new Set(e.skills.map((s) => s.name.toLowerCase()));
-    const hasSkillMatch = requiredSkills.some((req) => skillMatches(req, employeeSkills));
+    const hasSkillMatch = requiredSkills.some((req) =>
+      skillMatches(req, employeeSkills),
+    );
     if (hasSkillMatch) return true;
 
     // If role matched but no skill match, still allow (AI often invents skill names not in our catalog)
@@ -464,7 +590,9 @@ Rules:
       confidence: number;
       reason: string;
     }[] = [];
-    const validIds = new Set(topCandidates.map((c) => (c as any).employeeId ?? c.id));
+    const validIds = new Set(
+      topCandidates.map((c) => (c as any).employeeId ?? c.id),
+    );
 
     for (const r of parsed.rankedCandidates) {
       if (
@@ -486,13 +614,11 @@ Rules:
 
     // Merge AI-ranked top candidates with deterministically ranked rest
     const aiRankedIds = new Set(validated.map((v) => v.employeeId));
-    const restCandidates = scored
-      .slice(5)
-      .map((item) => ({
-        employeeId: (item.candidate as any).employeeId ?? item.candidate.id,
-        confidence: item.score,
-        reason: `Deterministic ranking: ${item.candidate.experienceLevel} ${item.candidate.role} with ${item.candidate.availabilityPercent}% availability.`,
-      }));
+    const restCandidates = scored.slice(5).map((item) => ({
+      employeeId: (item.candidate as any).employeeId ?? item.candidate.id,
+      confidence: item.score,
+      reason: `Deterministic ranking: ${item.candidate.experienceLevel} ${item.candidate.role} with ${item.candidate.availabilityPercent}% availability.`,
+    }));
 
     return [...validated, ...restCandidates];
   } catch (error) {
@@ -523,113 +649,125 @@ export async function generateAllocation(
 
   // Demand already normalized above for cache key
 
-  const roleAllocations: {
-    roleName: string;
-    recommendations: {
-      employeeId: string;
-      employeeName: string;
-      currentRole: string;
-      confidence: number;
-      reason: string;
-      status: 'EXISTING' | 'NEW' | 'REMOVED';
-      allocationPercent: number;
-    }[];
-  }[] = [];
+  // 2. Process each role in the canonical demand concurrently
+  const roleAllocations = await Promise.all(
+    demand.roles.map(async (roleDemand) => {
+      const { roleName, headcount, requiredSkills, allocationPercent } =
+        roleDemand;
 
-  // 2. Process each role in the canonical demand
-  for (const roleDemand of demand.roles) {
-    const { roleName, headcount, requiredSkills, allocationPercent } =
-      roleDemand;
+      // A. Identify Existing Assignments (from normalization source or passed in projects)
+      // Since we normalized, we can look up existing assignments from the project if available,
+      // but normalizeProjectDemand mostly ensures the *demand* reflects reality.
+      // We need to actually Populate the 'EXISTING' recommendations.
 
-    // A. Identify Existing Assignments (from normalization source or passed in projects)
-    // Since we normalized, we can look up existing assignments from the project if available,
-    // but normalizeProjectDemand mostly ensures the *demand* reflects reality.
-    // We need to actually Populate the 'EXISTING' recommendations.
+      const existingRecommendations: any[] = [];
 
-    const existingRecommendations: any[] = [];
+      if (demand.projectId && demand.projectType === 'EXISTING') {
+        const project = projects.find(
+          (p) => String(p.id) === String(demand.projectId),
+        );
 
-    if (demand.projectId && demand.projectType === 'EXISTING') {
-      const project = projects.find((p) => p.id === demand.projectId);
-      if (project && project.assignedEmployees) {
-        project.assignedEmployees.forEach((ass) => {
-          // Check if this assignment maps to current role
-          // (Simple matching or synonym check could go here, for now assumes roleName matches or fallback)
-          const emp = employees.find((e) => ((e as any).employeeId ?? e.id) === ass.employeeId);
-          if (emp) {
-            const assRole = ass.roleName || emp.role; // preferred role name
+        if (project && project.assignedEmployees) {
+          project.assignedEmployees.forEach((ass) => {
+            // 1. Extract IDs safely (handling potential DB schema variations)
+            const empIdFromAss = String(
+              (ass as any).employeeId ?? (ass as any).id,
+            );
 
-            // Flexible match: if assignment role matches the demand role
-            if (assRole.toLowerCase() === roleName.toLowerCase()) {
+            // 2. Try to find them in the bench array, but DO NOT fail if they aren't there
+            const emp = employees.find(
+              (e) => String((e as any).employeeId ?? e.id) === empIdFromAss,
+            );
+
+            // 3. Graceful fallbacks using data from the project assignment record
+            const assRole = ass.roleName || (emp ? emp.role : 'Unknown Role');
+
+            // Extract the injected employeeName from the assignment record directly
+            const assName =
+              (ass as any).employeeName ??
+              (ass as any).name ??
+              (emp ? emp.name : 'Existing Team Member');
+
+            // 4. Strict Role Matching
+            if (normalizeRoleText(assRole) === normalizeRoleText(roleName)) {
               existingRecommendations.push({
-                employeeId: (emp as any).employeeId ?? emp.id,
-                employeeName: emp.name,
-                currentRole: emp.role,
+                employeeId: empIdFromAss,
+                employeeName: assName,
+                currentRole: assRole,
                 confidence: 1.0,
                 reason: 'Already assigned to this project.',
-                status: 'EXISTING',
-                allocationPercent: ass.allocationPercent,
+                status: 'EXISTING', // Locks them in and prevents AI replacement
+                allocationPercent: ass.allocationPercent || 100,
               });
             }
-          }
-        });
-      }
-    }
-
-    // B. Determine Net Need (Derived Headcount)
-    // Fulfilled = Existing
-    // Need = Target - Fulfilled
-    const currentHeadcount = existingRecommendations.length;
-    const candidatesNeeded = Math.max(0, headcount - currentHeadcount);
-
-    let finalRecs = [...existingRecommendations];
-
-    if (candidatesNeeded > 0) {
-      // Resolve Candidates
-      const skills = requiredSkills.map((s) => s.name); // extract names
-      const candidates = resolveCandidates(roleName, skills, employees);
-
-      // Exclude Existing
-      const existingIds = new Set(
-        existingRecommendations.map((r) => r.employeeId),
-      );
-      const available = candidates.filter((c) => !existingIds.has((c as any).employeeId ?? c.id));
-
-      // Rank
-      let rankedStrats: any[] = [];
-      if (available.length > 0) {
-        rankedStrats = await rankCandidatesWithAI(roleName, available, skills);
+          });
+        }
       }
 
-      // Select Top N
-      const newRecs = rankedStrats
-        .slice(0, candidatesNeeded)
-        .map((r) => {
-          const emp = available.find((e) => ((e as any).employeeId ?? e.id) === r.employeeId);
-          if (!emp) return null;
+      // B. Determine Net Need (Derived Headcount)
+      // Fulfilled = Existing
+      // Need = Target - Fulfilled
+      const currentHeadcount = existingRecommendations.length;
+      const candidatesNeeded = Math.max(0, headcount - currentHeadcount);
 
-          const targetAlloc = allocationPercent || 100;
-          const finalAlloc = Math.min(targetAlloc, emp.availabilityPercent);
+      let finalRecs = [...existingRecommendations];
 
-          return {
-            employeeId: (emp as any).employeeId ?? emp.id,
-            employeeName: emp.name,
-            currentRole: emp.role,
-            confidence: r.confidence,
-            reason: r.reason,
-            status: 'NEW',
-            allocationPercent: finalAlloc,
-          };
-        })
-        .filter((r) => r !== null);
+      if (candidatesNeeded > 0) {
+        // Resolve Candidates
+        const skills = requiredSkills.map((s) => s.name); // extract names
+        const candidates = resolveCandidates(roleName, skills, employees);
 
-      finalRecs = [...finalRecs, ...newRecs];
-    }
+        // Exclude Existing
+        const existingIds = new Set(
+          existingRecommendations.map((r) => r.employeeId),
+        );
+        const available = candidates.filter(
+          (c) => !existingIds.has((c as any).employeeId ?? c.id),
+        );
 
-    roleAllocations.push({
-      roleName: roleName,
-      recommendations: finalRecs,
-    });
-  }
+        // Rank
+        let rankedStrats: any[] = [];
+        if (available.length > 0) {
+          rankedStrats = await rankCandidatesWithAI(
+            roleName,
+            available,
+            skills,
+          );
+        }
+
+        // Select Top N
+        const newRecs = rankedStrats
+          .slice(0, candidatesNeeded)
+          .map((r) => {
+            const emp = available.find(
+              (e) => ((e as any).employeeId ?? e.id) === r.employeeId,
+            );
+            if (!emp) return null;
+
+            const targetAlloc = allocationPercent || 100;
+            const finalAlloc = Math.min(targetAlloc, emp.availabilityPercent);
+
+            return {
+              employeeId: (emp as any).employeeId ?? emp.id,
+              employeeName: emp.name,
+              currentRole: emp.role,
+              confidence: r.confidence,
+              reason: r.reason,
+              status: 'NEW',
+              allocationPercent: finalAlloc,
+            };
+          })
+          .filter((r) => r !== null);
+
+        finalRecs = [...finalRecs, ...newRecs];
+      }
+
+      return {
+        roleName: roleName,
+        recommendations: finalRecs,
+      };
+    }),
+  );
 
   const proposal: AllocationProposal = {
     projectName: demand.projectName,
@@ -793,7 +931,9 @@ async function handleAddSingleRole(
       r.recommendations.map((re) => re.employeeId),
     ),
   );
-  const availableCandidates = candidates.filter((e) => !currentIds.has((e as any).employeeId ?? e.id));
+  const availableCandidates = candidates.filter(
+    (e) => !currentIds.has((e as any).employeeId ?? e.id),
+  );
 
   if (availableCandidates.length === 0) {
     return {
@@ -825,13 +965,19 @@ async function handleAddSingleRole(
   // --- DELTA LOGIC END ---
 
   // 4. Rank
-  const ranked = await rankCandidatesWithAI(roleName, availableCandidates, resolvedSkills || []);
+  const ranked = await rankCandidatesWithAI(
+    roleName,
+    availableCandidates,
+    resolvedSkills || [],
+  );
 
   // 5. Build Selection
   const topCandidates = ranked
     .slice(0, candidatesToAddCount)
     .map((r) => {
-      const emp = availableCandidates.find((e) => ((e as any).employeeId ?? e.id) === r.employeeId);
+      const emp = availableCandidates.find(
+        (e) => ((e as any).employeeId ?? e.id) === r.employeeId,
+      );
       if (!emp) {
         console.warn(
           `[WARN] Ranked employee ${r.employeeId} not found in availableCandidates`,
@@ -976,7 +1122,11 @@ async function handleReplaceEmployee(
   }
 
   // Rank
-  const ranked = await rankCandidatesWithAI(roleToFill, availableCandidates, resolvedSkills || []);
+  const ranked = await rankCandidatesWithAI(
+    roleToFill,
+    availableCandidates,
+    resolvedSkills || [],
+  );
 
   if (ranked.length > 0) {
     const top = ranked[0];

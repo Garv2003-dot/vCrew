@@ -5,15 +5,18 @@ import type {
   Project,
   LoadingDemand,
 } from '@repo/types';
-import type { AgentContext, ThinkingStep, OnThinking, DemandAgentResult } from './types';
+import type {
+  AgentContext,
+  ThinkingStep,
+  OnThinking,
+  DemandAgentResult,
+} from './types';
 import { parseChatDemand } from './demand/chatDemandAgent';
 import { parseSimpleDemand } from './demand/simpleDemandAgent';
 import { parseExistingProjectDemand } from './demand/existingProjectAgent';
 import { parseLoadingTableDemand } from './demand/loadingTableAgent';
 import { runAllocationAgent } from './allocation/allocationAgent';
-import { runQAAgent } from './analysis/qaAgent';
-import { runSkillGapAgent } from './analysis/skillGapAgent';
-import { runCapacityAgent } from './analysis/capacityAgent';
+import { runUnifiedAnalysisAgent } from './analysis/unifiedAnalysisAgent';
 import { processAgentInstruction } from './allocationAdvisor';
 
 export interface OrchestratorInput {
@@ -44,7 +47,7 @@ export interface OrchestratorResult {
  */
 export async function runMainOrchestrator(
   input: OrchestratorInput,
-  onThinking?: OnThinking
+  onThinking?: OnThinking,
 ): Promise<OrchestratorResult> {
   const thinkingSteps: ThinkingStep[] = [];
   const emit: OnThinking = (step) => {
@@ -63,7 +66,10 @@ export async function runMainOrchestrator(
     userInput: input.userInput,
   };
 
-  console.log('[Orchestrator] Starting, userInput:', input.userInput?.slice(0, 80));
+  console.log(
+    '[Orchestrator] Starting, userInput:',
+    input.userInput?.slice(0, 80),
+  );
 
   // Step 1: Deterministic routing (no Gemini call)
   emit({
@@ -92,17 +98,26 @@ export async function runMainOrchestrator(
     };
   }
   // Rule 2: If demand.projectType === "EXISTING" → use existingProjectAgent
-  else if (input.demand?.projectType === 'EXISTING' && input.demand?.projectId) {
+  else if (
+    input.demand?.projectType === 'EXISTING' &&
+    input.demand?.projectId
+  ) {
     decision = {
       inputType: 'existing_project',
-      nextAction: input.demand.roles?.length ? 'run_allocation' : 'parse_demand',
+      nextAction: input.demand.roles?.length
+        ? 'run_allocation'
+        : 'parse_demand',
       demandAgent: 'existingProjectAgent',
       runAnalysis: [],
       reasoning: 'Detected existing project demand.',
     };
   }
   // Rule 3: If demand.roles exists → use simpleDemandAgent
-  else if (input.demand?.roles && Array.isArray(input.demand.roles) && input.demand.roles.length > 0) {
+  else if (
+    input.demand?.roles &&
+    Array.isArray(input.demand.roles) &&
+    input.demand.roles.length > 0
+  ) {
     decision = {
       inputType: 'simple_demand',
       nextAction: 'run_allocation',
@@ -112,7 +127,10 @@ export async function runMainOrchestrator(
     };
   }
   // Rule 4: If currentProposal exists and user message contains add/replace/remove/swap/change → use processAgentInstruction
-  else if (input.currentProposal && /add|replace|remove|swap|change|more|another|adjust/i.test(input.userInput)) {
+  else if (
+    input.currentProposal &&
+    /add|replace|remove|swap|change|more|another|adjust/i.test(input.userInput)
+  ) {
     decision = {
       inputType: 'chat',
       nextAction: 'respond',
@@ -122,11 +140,19 @@ export async function runMainOrchestrator(
     };
   }
   // Rule 5: Check for analysis requests
-  else if (input.currentProposal && /summarize|bottleneck|skill gap|capacity|analysis|qa|quality/i.test(input.userInput)) {
+  else if (
+    input.currentProposal &&
+    /summarize|bottleneck|skill gap|capacity|analysis|qa|quality/i.test(
+      input.userInput,
+    )
+  ) {
     const analysisAgents: string[] = [];
-    if (/qa|quality|test/i.test(input.userInput)) analysisAgents.push('qaAgent');
-    if (/skill|gap/i.test(input.userInput)) analysisAgents.push('skillGapAgent');
-    if (/capacity|bottleneck/i.test(input.userInput)) analysisAgents.push('capacityAgent');
+    if (/qa|quality|test/i.test(input.userInput))
+      analysisAgents.push('qaAgent');
+    if (/skill|gap/i.test(input.userInput))
+      analysisAgents.push('skillGapAgent');
+    if (/capacity|bottleneck/i.test(input.userInput))
+      analysisAgents.push('capacityAgent');
     if (analysisAgents.length === 0) {
       // Default to all analysis if just "analysis" or "summarize"
       analysisAgents.push('qaAgent', 'skillGapAgent', 'capacityAgent');
@@ -175,7 +201,7 @@ export async function runMainOrchestrator(
       proposal,
       input.demand as ProjectDemand,
       input.conversation,
-      input.projects
+      input.projects,
     );
     return {
       proposal: result.proposal,
@@ -232,35 +258,48 @@ export async function runMainOrchestrator(
   }
 
   // Step 5: Run analysis agents if requested
-  if (decision.nextAction === 'run_analysis' && decision.runAnalysis?.length && proposal) {
+  if (
+    decision.nextAction === 'run_analysis' &&
+    decision.runAnalysis?.length &&
+    proposal
+  ) {
     ctx.currentProposal = proposal;
-    for (const agentName of decision.runAnalysis) {
-      try {
-        let result;
-        switch (agentName) {
-          case 'qaAgent':
-            result = await runQAAgent(ctx, emit);
-            analysis.qa = { summary: result.summary, details: result.details };
-            break;
-          case 'skillGapAgent':
-            result = await runSkillGapAgent(ctx, emit);
-            analysis.skillGap = { summary: result.summary, details: result.details };
-            break;
-          case 'capacityAgent':
-            result = await runCapacityAgent(ctx, emit);
-            analysis.capacity = { summary: result.summary, details: result.details };
-            break;
-          default:
-            continue;
-        }
-        message = message ? `${message}\n\n${result.summary}` : result.summary;
-      } catch (e) {
-        emit({
-          agent: 'mainOrchestrator',
-          step: 'analysis_error',
-          message: `${agentName} failed: ${e instanceof Error ? e.message : String(e)}`,
-        });
+    try {
+      const result = await runUnifiedAnalysisAgent(ctx, emit);
+
+      if (decision.runAnalysis.includes('qaAgent')) {
+        analysis.qa = {
+          summary: result.qa.summary,
+          details: result.qa.details,
+        };
+        message = message
+          ? `${message}\n\n${result.qa.summary}`
+          : result.qa.summary;
       }
+      if (decision.runAnalysis.includes('skillGapAgent')) {
+        analysis.skillGap = {
+          summary: result.skillGap.summary,
+          details: result.skillGap.details,
+        };
+        message = message
+          ? `${message}\n\n${result.skillGap.summary}`
+          : result.skillGap.summary;
+      }
+      if (decision.runAnalysis.includes('capacityAgent')) {
+        analysis.capacity = {
+          summary: result.capacity.summary,
+          details: result.capacity.details,
+        };
+        message = message
+          ? `${message}\n\n${result.capacity.summary}`
+          : result.capacity.summary;
+      }
+    } catch (e) {
+      emit({
+        agent: 'mainOrchestrator',
+        step: 'analysis_error',
+        message: `unifiedAnalysisAgent failed: ${e instanceof Error ? e.message : String(e)}`,
+      });
     }
   }
 
