@@ -18,10 +18,15 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string,password:string) => Promise<void>;
+  login: (email: string, password: string) => Promise<LoginResult>;
   logout: () => void;
   isLoading: boolean;
 }
+type LoginFailField = "form";
+ 
+export type LoginResult =
+  | { ok: true }
+  | { ok: false; field: LoginFailField; message: string };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -39,33 +44,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string,password: string) => {
+const login = async (
+    email: string,
+    password: string
+  ): Promise<LoginResult> => {
     setIsLoading(true);
-    // Mock API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-     
-    const user = dummyUsers.find(
-      (u)=> u.email ===  email && u.password=== password
-    );
-
-
-
-    if(!user){
-      setUser(null)
-      setIsLoading(false)
-      alert("No user found! Please try again!")
-      router.push('/login');
-    
+ 
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+ 
+      const user = dummyUsers.find(
+        (u) => u.email === email && u.password === password
+      );
+ 
+      if (!user) {
+        setUser(null);
+        return { ok: false, field: "form", message: "Please enter correct email or password" };
+      }
+ 
+      setUser(user);
+      localStorage.setItem("user", JSON.stringify(user));
+      router.push("/profile");
+ 
+      return { ok: true };
+    } finally {
+      setIsLoading(false);
     }
-
-    else{
-    setUser(user);
-    localStorage.setItem('user', JSON.stringify(user));
-    setIsLoading(false);
-    router.push('/profile');
-    
-    }
-
   };
 
   const logout = () => {
