@@ -13,6 +13,21 @@ async function getAllocationData() {
     fetchEmployeesFromSupabase(),
     fetchProjectsFromSupabase(),
   ]);
+
+  // Inject employeeName into project assignments from the master employee list
+  const employeeMap = new Map(
+    employees.map((e) => [String((e as any).employeeId ?? e.id), e.name]),
+  );
+
+  projects.forEach((proj) => {
+    proj.assignedEmployees?.forEach((ass) => {
+      const empId = String((ass as any).employeeId ?? (ass as any).id);
+      if (employeeMap.has(empId)) {
+        (ass as any).employeeName = employeeMap.get(empId);
+      }
+    });
+  });
+
   return { employees, projects };
 }
 
@@ -24,11 +39,13 @@ function loadingToProjectDemand(loading: LoadingDemand): ProjectDemand {
     const headcount = Math.max(1, Math.ceil(maxInAnyWeek / 100));
     return {
       roleName: row.roleName,
-      requiredSkills: (row.primarySkills || []).map((name: string, i: number) => ({
-        skillId: `s-${i}`,
-        name,
-        minimumProficiency: 3 as 1 | 2 | 3 | 4 | 5,
-      })),
+      requiredSkills: (row.primarySkills || []).map(
+        (name: string, i: number) => ({
+          skillId: `s-${i}`,
+          name,
+          minimumProficiency: 3 as 1 | 2 | 3 | 4 | 5,
+        }),
+      ),
       experienceLevel: row.experienceLevel,
       allocationPercent: 100,
       headcount,
@@ -55,12 +72,24 @@ allocationRoutes.post('/demand', async (req, res) => {
 
     console.log('[API] /demand: fetching employees, projects...');
     const { employees, projects } = await getAllocationData();
-    console.log('[API] /demand: got', employees?.length, 'employees,', projects?.length, 'projects');
+    console.log(
+      '[API] /demand: got',
+      employees?.length,
+      'employees,',
+      projects?.length,
+      'projects',
+    );
 
     // When form has only context/resourceDescription (no explicit roles), parse via AI
-    if (!normalizedDemand.roles?.length && (normalizedDemand.context || normalizedDemand.resourceDescription)) {
-      console.log('[API] /demand: no roles, parsing context via chatDemandAgent');
-      const { parseChatDemand } = await import('../ai/agents/demand/chatDemandAgent');
+    if (
+      !normalizedDemand.roles?.length &&
+      (normalizedDemand.context || normalizedDemand.resourceDescription)
+    ) {
+      console.log(
+        '[API] /demand: no roles, parsing context via chatDemandAgent',
+      );
+      const { parseChatDemand } =
+        await import('../ai/agents/demand/chatDemandAgent');
       const ctx = {
         employees,
         projects,
@@ -68,7 +97,10 @@ allocationRoutes.post('/demand', async (req, res) => {
         demand: normalizedDemand,
         loadingDemand: null,
         conversation: [],
-        userInput: normalizedDemand.context || normalizedDemand.resourceDescription || '',
+        userInput:
+          normalizedDemand.context ||
+          normalizedDemand.resourceDescription ||
+          '',
       };
       const result = await parseChatDemand(ctx);
       normalizedDemand = result.demand;
@@ -76,11 +108,16 @@ allocationRoutes.post('/demand', async (req, res) => {
 
     if (!normalizedDemand.roles?.length) {
       return res.status(400).json({
-        error: 'No roles in demand. Add roles in the form or provide a resource description (e.g. "2 Backend, 1 PM, 2 QA").',
+        error:
+          'No roles in demand. Add roles in the form or provide a resource description (e.g. "2 Backend, 1 PM, 2 QA").',
       });
     }
 
-    console.log('[API] /demand: calling generateAllocation for', normalizedDemand.roles.length, 'roles...');
+    console.log(
+      '[API] /demand: calling generateAllocation for',
+      normalizedDemand.roles.length,
+      'roles...',
+    );
     const proposal = await generateAllocation(
       normalizedDemand,
       employees,
@@ -107,28 +144,31 @@ allocationRoutes.post('/loading-demand', async (req, res) => {
 
     // Enrich each recommendation with interval (week) allocation from loading table
     const intervalLabel = loading.intervalLabel || 'Week';
-    const enrichedRoleAllocations = proposal.roleAllocations?.map((roleAlloc) => {
-      const loadingRow = loading.rows.find(
-        (r) => r.roleName.toLowerCase() === roleAlloc.roleName.toLowerCase(),
-      );
-      const intervals = loadingRow?.intervalAllocations || {};
-      const recCount = roleAlloc.recommendations.length;
-      const perPerson: Record<number, number> = {};
-      Object.entries(intervals).forEach(([idxStr, pct]) => {
-        const idx = Number(idxStr);
-        if (!Number.isNaN(idx) && pct > 0) {
-          perPerson[idx] = Math.round(pct / recCount);
-        }
-      });
+    const enrichedRoleAllocations =
+      proposal.roleAllocations?.map((roleAlloc) => {
+        const loadingRow = loading.rows.find(
+          (r) => r.roleName.toLowerCase() === roleAlloc.roleName.toLowerCase(),
+        );
+        const intervals = loadingRow?.intervalAllocations || {};
+        const recCount = roleAlloc.recommendations.length;
+        const perPerson: Record<number, number> = {};
+        Object.entries(intervals).forEach(([idxStr, pct]) => {
+          const idx = Number(idxStr);
+          if (!Number.isNaN(idx) && pct > 0) {
+            perPerson[idx] = Math.round(pct / recCount);
+          }
+        });
 
-      return {
-        ...roleAlloc,
-        recommendations: roleAlloc.recommendations.map((rec) => ({
-          ...rec,
-          allocationIntervals: Object.keys(perPerson).length ? perPerson : undefined,
-        })),
-      };
-    }) ?? [];
+        return {
+          ...roleAlloc,
+          recommendations: roleAlloc.recommendations.map((rec) => ({
+            ...rec,
+            allocationIntervals: Object.keys(perPerson).length
+              ? perPerson
+              : undefined,
+          })),
+        };
+      }) ?? [];
 
     res.json({
       ...proposal,
@@ -208,12 +248,19 @@ allocationRoutes.post('/demand/stream', async (req, res) => {
         projects,
       },
       (step) => {
-        send('thinking', { agent: step.agent, step: step.step, message: step.message });
-      }
+        send('thinking', {
+          agent: step.agent,
+          step: step.step,
+          message: step.message,
+        });
+      },
     );
 
     if (!result.proposal) {
-      send('error', { error: 'No roles in demand. Add roles or provide a resource description.' });
+      send('error', {
+        error:
+          'No roles in demand. Add roles or provide a resource description.',
+      });
       res.end();
       return;
     }
@@ -253,39 +300,49 @@ allocationRoutes.post('/loading-demand/stream', async (req, res) => {
         projects,
       },
       (step) => {
-        send('thinking', { agent: step.agent, step: step.step, message: step.message });
-      }
+        send('thinking', {
+          agent: step.agent,
+          step: step.step,
+          message: step.message,
+        });
+      },
     );
 
     const proposal = result.proposal;
     if (!proposal) {
-      send('error', { error: 'Failed to generate allocation from loading table.' });
+      send('error', {
+        error: 'Failed to generate allocation from loading table.',
+      });
       res.end();
       return;
     }
 
     const intervalLabel = loading.intervalLabel || 'Week';
-    const enrichedRoleAllocations = proposal.roleAllocations?.map((roleAlloc) => {
-      const loadingRow = loading.rows.find(
-        (r: LoadingRow) => r.roleName.toLowerCase() === roleAlloc.roleName.toLowerCase()
-      );
-      const intervals = loadingRow?.intervalAllocations || {};
-      const recCount = roleAlloc.recommendations.length;
-      const perPerson: Record<number, number> = {};
-      Object.entries(intervals).forEach(([idxStr, pct]) => {
-        const idx = Number(idxStr);
-        if (!Number.isNaN(idx) && pct > 0) {
-          perPerson[idx] = Math.round((pct as number) / recCount);
-        }
-      });
-      return {
-        ...roleAlloc,
-        recommendations: roleAlloc.recommendations.map((rec) => ({
-          ...rec,
-          allocationIntervals: Object.keys(perPerson).length ? perPerson : undefined,
-        })),
-      };
-    }) ?? [];
+    const enrichedRoleAllocations =
+      proposal.roleAllocations?.map((roleAlloc) => {
+        const loadingRow = loading.rows.find(
+          (r: LoadingRow) =>
+            r.roleName.toLowerCase() === roleAlloc.roleName.toLowerCase(),
+        );
+        const intervals = loadingRow?.intervalAllocations || {};
+        const recCount = roleAlloc.recommendations.length;
+        const perPerson: Record<number, number> = {};
+        Object.entries(intervals).forEach(([idxStr, pct]) => {
+          const idx = Number(idxStr);
+          if (!Number.isNaN(idx) && pct > 0) {
+            perPerson[idx] = Math.round((pct as number) / recCount);
+          }
+        });
+        return {
+          ...roleAlloc,
+          recommendations: roleAlloc.recommendations.map((rec) => ({
+            ...rec,
+            allocationIntervals: Object.keys(perPerson).length
+              ? perPerson
+              : undefined,
+          })),
+        };
+      }) ?? [];
 
     send('result', {
       proposal: {
@@ -320,7 +377,13 @@ allocationRoutes.post('/agentic', async (req, res) => {
 
     console.log('[API] Fetching employees and projects...');
     const { employees, projects } = await getAllocationData();
-    console.log('[API] Got', employees?.length ?? 0, 'employees,', projects?.length ?? 0, 'projects');
+    console.log(
+      '[API] Got',
+      employees?.length ?? 0,
+      'employees,',
+      projects?.length ?? 0,
+      'projects',
+    );
 
     const result = await runMainOrchestrator(
       {
@@ -334,7 +397,7 @@ allocationRoutes.post('/agentic', async (req, res) => {
       },
       (step) => {
         console.log(`[Agent] ${step.agent}: ${step.message}`);
-      }
+      },
     );
 
     res.json(result);
@@ -377,7 +440,13 @@ allocationRoutes.post('/agentic/stream', async (req, res) => {
 
     console.log('[API] Fetching employees and projects (stream)...');
     const { employees, projects } = await getAllocationData();
-    console.log('[API] Got', employees?.length ?? 0, 'employees,', projects?.length ?? 0, 'projects');
+    console.log(
+      '[API] Got',
+      employees?.length ?? 0,
+      'employees,',
+      projects?.length ?? 0,
+      'projects',
+    );
 
     const result = await runMainOrchestrator(
       {
@@ -390,8 +459,12 @@ allocationRoutes.post('/agentic/stream', async (req, res) => {
         projects,
       },
       (step) => {
-        send('thinking', { agent: step.agent, step: step.step, message: step.message });
-      }
+        send('thinking', {
+          agent: step.agent,
+          step: step.step,
+          message: step.message,
+        });
+      },
     );
 
     send('result', result);
