@@ -55,7 +55,9 @@ export default function ProjectRequirementsForm({
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
   /** Only one input method at a time: role rows OR multiline text */
-  const [rolesInputMode, setRolesInputMode] = useState<'rows' | 'multiline'>('rows');
+  const [rolesInputMode, setRolesInputMode] = useState<'rows' | 'multiline'>(
+    'rows',
+  );
   const [roleRows, setRoleRows] = useState<RoleRow[]>(() => {
     const roles = initialValues.roles || [];
     if (roles.length > 0) {
@@ -184,20 +186,21 @@ export default function ProjectRequirementsForm({
       priority: (priority || 'HIGH') as 'HIGH' | 'MEDIUM' | 'LOW',
       startDate:
         projectType === 'NEW'
-          ? (startDate
-              ? new Date(startDate).toISOString()
-              : new Date().toISOString())
+          ? startDate
+            ? new Date(startDate).toISOString()
+            : new Date().toISOString()
           : projectType === 'EXISTING'
             ? new Date().toISOString()
-            : undefined,
+            : '',
       durationMonths:
         projectType === 'NEW'
-          ? (typeof duration === 'number' ? duration : Number(duration) || 0)
+          ? typeof duration === 'number'
+            ? duration
+            : Number(duration) || 0
           : 0,
       probabilityOfConversion:
-        projectType === 'NEW' ? (probability || 0) : undefined,
-      context:
-        projectType === 'NEW' ? (context.trim() || undefined) : undefined,
+        projectType === 'NEW' ? probability || 0 : undefined,
+      context: projectType === 'NEW' ? context.trim() || undefined : undefined,
       resourceDescription:
         rolesInputMode === 'multiline'
           ? resourceDescription.trim() || undefined
@@ -449,170 +452,191 @@ export default function ProjectRequirementsForm({
           </div>
 
           {rolesInputMode === 'rows' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">Roles &amp; Skills</span>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={addRoleRow}
-                className="text-xs"
-              >
-                + Add role
-              </Button>
-            </div>
-            <p className="text-xs text-gray-500">
-              Specify exact roles, skills, and headcount.
-            </p>
-
-          <div className="space-y-3">
-            {roleRows.map((row) => (
-              <div
-                key={row.id}
-                className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
-              >
-                {/* Top row: Role | Headcount | Level | Remove */}
-                <div className="grid grid-cols-12 gap-3 items-end">
-                  {/* Role */}
-                  <div className="col-span-12 md:col-span-6">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Role
-                    </label>
-                    <select
-                      className="w-full h-10 px-3 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-200"
-                      value={row.roleName}
-                      onChange={(e) =>
-                        updateRoleRow(row.id, 'roleName', e.target.value)
-                      }
-                    >
-                      <option value="" disabled>
-                        Select Role
-                      </option>
-                      {roleOptions.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Headcount */}
-                  <div className="col-span-6 md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Headcount
-                    </label>
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      min={1}
-                      className="h-10 text-center"
-                      value={row.headcount}
-                      onChange={(e) =>
-                        updateRoleRow(
-                          row.id,
-                          'headcount',
-                          Math.max(1, Number(e.target.value) || 1),
-                        )
-                      }
-                    />
-                  </div>
-
-                  {/* Experience */}
-                  <div className="col-span-6 md:col-span-3">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Experience
-                    </label>
-                    <select
-                      className="w-full h-10 px-3 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-200"
-                      value={row.experienceLevel}
-                      onChange={(e) =>
-                        updateRoleRow(
-                          row.id,
-                          'experienceLevel',
-                          e.target.value as RoleRow['experienceLevel'],
-                        )
-                      }
-                    >
-                      <option value="JUNIOR">Junior</option>
-                      <option value="MID">Mid-Level</option>
-                      <option value="SENIOR">Senior</option>
-                    </select>
-                  </div>
-
-                  {/* Remove */}
-                  <div className="col-span-12 md:col-span-1 flex md:justify-end items-end">
-                    {roleRows.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeRoleRow(row.id)}
-                        className="h-10 w-10 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition"
-                        aria-label="Remove role"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Skills */}
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Primary skills
-                    </label>
-                    <Input
-                      placeholder="e.g. React, Node.js"
-                      className="h-10"
-                      value={row.primarySkills}
-                      onChange={(e) =>
-                        updateRoleRow(row.id, 'primarySkills', e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Secondary skills
-                    </label>
-                    <Input
-                      placeholder="Nice to have"
-                      className="h-10"
-                      value={row.secondarySkills}
-                      onChange={(e) =>
-                        updateRoleRow(row.id, 'secondarySkills', e.target.value)
-                      }
-                    />
-                  </div>
-                </div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-700">
+                  Roles &amp; Skills
+                </span>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={addRoleRow}
+                  className="text-xs"
+                >
+                  + Add role
+                </Button>
               </div>
-            ))}
-          </div>
-          </div>
+              <p className="text-xs text-gray-500">
+                Specify exact roles, skills, and headcount.
+              </p>
+
+              <div className="space-y-3">
+                {roleRows.map((row) => (
+                  <div
+                    key={row.id}
+                    className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+                  >
+                    {/* Top row: Role | Headcount | Level | Remove */}
+                    <div className="grid grid-cols-12 gap-3 items-end">
+                      {/* Role */}
+                      <div className="col-span-12 md:col-span-6">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Role
+                        </label>
+                        <select
+                          className="w-full h-10 px-3 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-200"
+                          value={row.roleName}
+                          onChange={(e) =>
+                            updateRoleRow(row.id, 'roleName', e.target.value)
+                          }
+                        >
+                          <option value="" disabled>
+                            Select Role
+                          </option>
+                          {roleOptions.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Headcount */}
+                      <div className="col-span-6 md:col-span-2">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Headcount
+                        </label>
+                        <Input
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          className="h-10 text-center"
+                          value={row.headcount}
+                          onChange={(e) =>
+                            updateRoleRow(
+                              row.id,
+                              'headcount',
+                              Math.max(1, Number(e.target.value) || 1),
+                            )
+                          }
+                        />
+                      </div>
+
+                      {/* Experience */}
+                      <div className="col-span-6 md:col-span-3">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Experience
+                        </label>
+                        <select
+                          className="w-full h-10 px-3 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-200"
+                          value={row.experienceLevel}
+                          onChange={(e) =>
+                            updateRoleRow(
+                              row.id,
+                              'experienceLevel',
+                              e.target.value as RoleRow['experienceLevel'],
+                            )
+                          }
+                        >
+                          <option value="JUNIOR">Junior</option>
+                          <option value="MID">Mid-Level</option>
+                          <option value="SENIOR">Senior</option>
+                        </select>
+                      </div>
+
+                      {/* Remove */}
+                      <div className="col-span-12 md:col-span-1 flex md:justify-end items-end">
+                        {roleRows.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeRoleRow(row.id)}
+                            className="h-10 w-10 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition"
+                            aria-label="Remove role"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Skills */}
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Primary skills
+                        </label>
+                        <Input
+                          placeholder="e.g. React, Node.js"
+                          className="h-10"
+                          value={row.primarySkills}
+                          onChange={(e) =>
+                            updateRoleRow(
+                              row.id,
+                              'primarySkills',
+                              e.target.value,
+                            )
+                          }
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Secondary skills
+                        </label>
+                        <Input
+                          placeholder="Nice to have"
+                          className="h-10"
+                          value={row.secondarySkills}
+                          onChange={(e) =>
+                            updateRoleRow(
+                              row.id,
+                              'secondarySkills',
+                              e.target.value,
+                            )
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
           {rolesInputMode === 'multiline' && (
-          <div className="space-y-2">
-            <label
-              htmlFor="resource-description"
-              className="block text-sm font-medium text-gray-700"
-            >
-              How many resources do you need?
-            </label>
-            <p className="text-xs text-gray-500">
-              Describe in plain text, e.g. &quot;2 Backend, 3 Frontend, 1
-              Project Manager, 2 QA&quot;. The AI will interpret this.
-            </p>
-            <textarea
-              id="resource-description"
-              rows={4}
-              className="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              placeholder="e.g. 2 Backend, 3 Frontend, 1 Project Manager, 2 QA"
-              value={resourceDescription}
-              onChange={(e) => setResourceDescription(e.target.value)}
-            />
-          </div>
+            <div className="space-y-2">
+              <label
+                htmlFor="resource-description"
+                className="block text-sm font-medium text-gray-700"
+              >
+                How many resources do you need?
+              </label>
+              <p className="text-xs text-gray-500">
+                Describe in plain text, e.g. &quot;2 Backend, 3 Frontend, 1
+                Project Manager, 2 QA&quot;. The AI will interpret this.
+              </p>
+              <textarea
+                id="resource-description"
+                rows={4}
+                className="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="e.g. 2 Backend, 3 Frontend, 1 Project Manager, 2 QA"
+                value={resourceDescription}
+                onChange={(e) => setResourceDescription(e.target.value)}
+              />
+            </div>
           )}
         </div>
 
