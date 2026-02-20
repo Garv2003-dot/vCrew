@@ -1,35 +1,39 @@
-import { Employee } from '@repo/types';
-import { supabase } from '../lib/supabase';
+import { Employee } from "@repo/types";
+import { supabase } from "../lib/supabase";
 
 export async function fetchEmployeesFromSupabase(): Promise<Employee[]> {
   if (!supabase) {
-    throw new Error('Supabase client not configured');
+    throw new Error("Supabase client not configured");
   }
 
   const { data: employees, error: empError } = await supabase
-    .from('employees')
-    .select('*')
-    .order('name');
+    .from("employees")
+    .select("*")
+    .order("name");
 
   if (empError) throw empError;
   if (!employees?.length) return [];
 
-  const ids = employees.map((e: any) => e.id);
-
+  // Fetch all related data without ID filtering — avoids URL length overflow
+  // when employee count exceeds ~200. The in-memory maps below do the joining.
   const [skillsRes, experiencesRes, assignmentsRes] = await Promise.all([
+    supabase.from("employee_skills").select(
+      // Use explicit FK-based relation so Supabase joins correctly
+      "employee_id, proficiency, skills:skills!employee_skills_skill_id_fkey (id, name)",
+    ),
+    supabase.from("work_experiences").select("*"),
     supabase
-      .from('employee_skills')
-      .select('employee_id, skill_id, proficiency, skills(id, name)')
-      .in('employee_id', ids),
-    supabase.from('work_experiences').select('*').in('employee_id', ids),
-    supabase
-      .from('project_assignments')
+      .from("project_assignments")
       .select(
-        'project_id, employee_id, role_name, allocation_percent, projects(id, name, logo)',
+        // Explicit FK-based relation for projects as well
+        "project_id, employee_id, role_name, allocation_percent, projects:projects!project_assignments_project_id_fkey (id, name, logo)",
       )
-      .in('employee_id', ids)
-      .eq('status', 'ACTIVE'),
+      .eq("status", "ACTIVE"),
   ]);
+
+  if (skillsRes.error) throw skillsRes.error;
+  if (experiencesRes.error) throw experiencesRes.error;
+  if (assignmentsRes.error) throw assignmentsRes.error;
 
   const skillsMap = new Map<
     string,
@@ -63,7 +67,7 @@ export async function fetchEmployeesFromSupabase(): Promise<Employee[]> {
     if (!expMap.has(empId)) expMap.set(empId, []);
     expMap.get(empId)!.push({
       companyName: row.company_name,
-      companyUrl: row.company_url || '',
+      companyUrl: row.company_url || "",
       jobTitle: row.job_title,
       startDate: row.start_date,
       endDate: row.end_date,
@@ -98,20 +102,20 @@ export async function fetchEmployeesFromSupabase(): Promise<Employee[]> {
     employeeId: e.employee_id ?? undefined,
     name: e.name,
     role: e.role,
-    experienceLevel: e.experience_level as 'JUNIOR' | 'MID' | 'SENIOR',
+    experienceLevel: e.experience_level as "JUNIOR" | "MID" | "SENIOR",
     totalExpMonths: e.total_exp_months ?? undefined,
     age: e.age ?? undefined,
-    gender: e.gender ?? '',
-    mobile: e.mobile ?? '',
-    email: e.email ?? '',
-    address: e.address ?? '',
-    state: e.state ?? '',
-    pincode: e.pincode ?? '',
-    description: e.description ?? '',
+    gender: e.gender ?? "",
+    mobile: e.mobile ?? "",
+    email: e.email ?? "",
+    address: e.address ?? "",
+    state: e.state ?? "",
+    pincode: e.pincode ?? "",
+    description: e.description ?? "",
     workExperience: expMap.get(e.id) || [],
     skills: skillsMap.get(e.id) || [],
     availabilityPercent: e.availability_percent ?? 100,
-    status: e.status as Employee['status'],
+    status: e.status as Employee["status"],
     currentProjects: assignMap.get(e.id) || [],
   }));
 }

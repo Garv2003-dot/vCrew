@@ -6,6 +6,11 @@ const repoRootEnv = path.resolve(__dirname, '../../../.env');
 config({ path: repoRootEnv });
 config({ path: path.resolve(process.cwd(), '.env') });
 
+// Handle self-signed certificates in development (e.g., corporate proxies)
+if (process.env.NODE_ENV !== 'production') {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
 if (!process.env.GEMINI_API_KEY) {
   console.warn(
     '[API] GEMINI_API_KEY is not set. Create a .env file at the project root (copy .env.example) and add your key.',

@@ -8,6 +8,7 @@ import {
 } from '@repo/types';
 import { callGemini } from '../clients/geminiClient';
 import { extractAllocationIntent } from './intentAgent';
+import { createHash } from 'crypto';
 
 const ROLE_SYNONYMS: Record<string, string[]> = {
   backend: ['backend', 'server', 'api', 'node', 'java', 'go', 'python'],
@@ -18,6 +19,66 @@ const ROLE_SYNONYMS: Record<string, string[]> = {
   design: ['design', 'ux', 'ui', 'product designer'],
   manager: ['manager', 'lead', 'em', 'director'],
 };
+
+// Simple in-memory cache for allocation results (2 minute TTL)
+interface CacheEntry {
+  proposal: AllocationProposal;
+  timestamp: number;
+}
+
+const allocationCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+
+function createCacheKey(demand: ProjectDemand, employees: Employee[], projects: Project[] = []): string {
+  // Create hash from demand roles + employee IDs (for availability changes) + relevant project state
+  const demandKey = JSON.stringify({
+    projectName: demand.projectName,
+    projectId: demand.projectId,
+    projectType: demand.projectType,
+    roles: demand.roles?.map((r) => ({
+      roleName: r.roleName,
+      headcount: r.headcount,
+      requiredSkills: r.requiredSkills?.map((s) => s.name).sort(),
+    })),
+  });
+  const employeeKey = employees.map((e) => `${(e as any).employeeId ?? e.id}:${e.availabilityPercent}`).sort().join(',');
+  // Include relevant project state (if existing project, include assigned employees)
+  const projectKey = demand.projectId 
+    ? projects.find((p) => p.id === demand.projectId)?.assignedEmployees?.map((a) => `${a.employeeId}:${a.allocationPercent}`).sort().join(',') || ''
+    : '';
+  const combined = `${demandKey}|${employeeKey}|${projectKey}`;
+  return createHash('sha256').update(combined).digest('hex');
+}
+
+function getCachedAllocation(key: string): AllocationProposal | null {
+  const entry = allocationCache.get(key);
+  if (!entry) return null;
+  
+  const age = Date.now() - entry.timestamp;
+  if (age > CACHE_TTL_MS) {
+    allocationCache.delete(key);
+    return null;
+  }
+  
+  return entry.proposal;
+}
+
+function setCachedAllocation(key: string, proposal: AllocationProposal): void {
+  allocationCache.set(key, {
+    proposal,
+    timestamp: Date.now(),
+  });
+  
+  // Cleanup old entries periodically (simple cleanup on every 10th set)
+  if (allocationCache.size > 100) {
+    const now = Date.now();
+    for (const [k, v] of allocationCache.entries()) {
+      if (now - v.timestamp > CACHE_TTL_MS) {
+        allocationCache.delete(k);
+      }
+    }
+  }
+}
 
 // Explicit State Container
 interface AgentState {
@@ -170,24 +231,87 @@ function resolveCandidates(
   return filtered;
 }
 
-// 2️⃣ Rank Candidates with AI (Validated)
+// Deterministic scoring function for pre-filtering
+function scoreCandidateDeterministic(
+  candidate: Employee,
+  roleName: string,
+  requiredSkills: string[],
+): number {
+  let score = 0;
+
+  // 1. Availability weight (0-0.3)
+  const availability = candidate.availabilityPercent ?? 100;
+  score += (availability / 100) * 0.3;
+
+  // 2. Experience level weight (0-0.2)
+  const expMap: Record<string, number> = { SENIOR: 1.0, MID: 0.7, JUNIOR: 0.4 };
+  score += (expMap[candidate.experienceLevel] || 0.5) * 0.2;
+
+  // 3. Skill match weight (0-0.4)
+  if (requiredSkills && requiredSkills.length > 0) {
+    const employeeSkills = new Set(
+      candidate.skills.map((s) => s.name.toLowerCase()),
+    );
+    const reqSkillsLower = requiredSkills.map((s) => s.toLowerCase());
+    const matchedSkills = reqSkillsLower.filter((req) =>
+      employeeSkills.has(req),
+    );
+    const skillMatchRatio = matchedSkills.length / requiredSkills.length;
+    score += skillMatchRatio * 0.4;
+  } else {
+    // If no required skills, give full points
+    score += 0.4;
+  }
+
+  // 4. Role match weight (0-0.1)
+  const roleLower = roleName.toLowerCase();
+  const candidateRoleLower = candidate.role.toLowerCase();
+  if (candidateRoleLower.includes(roleLower) || roleLower.includes(candidateRoleLower)) {
+    score += 0.1;
+  }
+
+  return Math.min(1.0, score);
+}
+
+// 2️⃣ Rank Candidates with AI (Optimized with deterministic pre-filtering)
 async function rankCandidatesWithAI(
   roleName: string,
   candidates: Employee[],
+  requiredSkills: string[] = [],
 ): Promise<{ employeeId: string; confidence: number; reason: string }[]> {
   if (candidates.length === 0) return [];
 
-  const candidateContext = candidates
+  // STEP 1: Deterministic pre-scoring and sorting
+  const scored = candidates.map((c) => ({
+    candidate: c,
+    score: scoreCandidateDeterministic(c, roleName, requiredSkills),
+  }));
+
+  scored.sort((a, b) => b.score - a.score);
+
+  // STEP 2: If fewer than 5 candidates, skip AI entirely
+  if (candidates.length < 5) {
+    return scored.map((item, index) => ({
+      employeeId: (item.candidate as any).employeeId ?? item.candidate.id,
+      confidence: item.score,
+      reason: `Deterministic ranking: ${item.candidate.experienceLevel} ${item.candidate.role} with ${item.candidate.availabilityPercent}% availability.`,
+    }));
+  }
+
+  // STEP 3: Send only top 5 candidates to AI for final ranking
+  const topCandidates = scored.slice(0, 5).map((item) => item.candidate);
+
+  const candidateContext = topCandidates
     .map(
       (e) =>
-        `- ${e.name} (id: ${e.id}): ${e.role}, ${e.experienceLevel}, Skills: ${e.skills.map((s) => s.name).join(', ')}, Availability: ${e.availabilityPercent}%`,
+        `- ${e.name} (id: ${(e as any).employeeId ?? e.id}): ${e.role}, ${e.experienceLevel}, Skills: ${e.skills.map((s) => s.name).join(', ')}, Availability: ${e.availabilityPercent}%`,
     )
     .join('\n');
 
   const prompt = `
 You are a senior technical recruiter ranking candidates for the role: ${roleName}.
 
-Candidates:
+Candidates (pre-filtered top 5):
 ${candidateContext}
 
 Return ONLY valid JSON:
@@ -254,7 +378,7 @@ Rules:
       confidence: number;
       reason: string;
     }[] = [];
-    const validIds = new Set(candidates.map((c) => c.id));
+    const validIds = new Set(topCandidates.map((c) => (c as any).employeeId ?? c.id));
 
     for (const r of parsed.rankedCandidates) {
       if (
@@ -274,14 +398,24 @@ Rules:
       }
     }
 
-    return validated;
+    // Merge AI-ranked top candidates with deterministically ranked rest
+    const aiRankedIds = new Set(validated.map((v) => v.employeeId));
+    const restCandidates = scored
+      .slice(5)
+      .map((item) => ({
+        employeeId: (item.candidate as any).employeeId ?? item.candidate.id,
+        confidence: item.score,
+        reason: `Deterministic ranking: ${item.candidate.experienceLevel} ${item.candidate.role} with ${item.candidate.availabilityPercent}% availability.`,
+      }));
+
+    return [...validated, ...restCandidates];
   } catch (error) {
     console.error('Failed to rank candidates:', error);
-    // 🔒 HARD GUARANTEE: preserve candidate identity + order
-    return candidates.map((c, index) => ({
-      employeeId: c.id,
-      confidence: 0.5 - index * 0.01, // deterministic tie-break
-      reason: 'Default ranking due to AI parsing failure.',
+    // 🔒 HARD GUARANTEE: fallback to deterministic ranking
+    return scored.map((item) => ({
+      employeeId: (item.candidate as any).employeeId ?? item.candidate.id,
+      confidence: item.score,
+      reason: 'Deterministic ranking (AI fallback).',
     }));
   }
 }
@@ -292,9 +426,16 @@ export async function generateAllocation(
   employees: Employee[],
   projects: Project[] = [],
 ): Promise<AllocationProposal> {
-  // 1. Normalize Demand (Adapter Pattern)
-  // This handles merging existing projects, open roles, and preventing drift
+  // Check cache first (after normalization to ensure consistent key)
   const demand = normalizeProjectDemand(rawDemand, projects);
+  const cacheKey = createCacheKey(demand, employees, projects);
+  const cached = getCachedAllocation(cacheKey);
+  if (cached) {
+    console.log('[Allocation] Cache hit for', demand.projectName);
+    return cached;
+  }
+
+  // Demand already normalized above for cache key
 
   const roleAllocations: {
     roleName: string;
@@ -327,14 +468,14 @@ export async function generateAllocation(
         project.assignedEmployees.forEach((ass) => {
           // Check if this assignment maps to current role
           // (Simple matching or synonym check could go here, for now assumes roleName matches or fallback)
-          const emp = employees.find((e) => e.id === ass.employeeId);
+          const emp = employees.find((e) => ((e as any).employeeId ?? e.id) === ass.employeeId);
           if (emp) {
             const assRole = ass.roleName || emp.role; // preferred role name
 
             // Flexible match: if assignment role matches the demand role
             if (assRole.toLowerCase() === roleName.toLowerCase()) {
               existingRecommendations.push({
-                employeeId: emp.id,
+                employeeId: (emp as any).employeeId ?? emp.id,
                 employeeName: emp.name,
                 currentRole: emp.role,
                 confidence: 1.0,
@@ -365,26 +506,26 @@ export async function generateAllocation(
       const existingIds = new Set(
         existingRecommendations.map((r) => r.employeeId),
       );
-      const available = candidates.filter((c) => !existingIds.has(c.id));
+      const available = candidates.filter((c) => !existingIds.has((c as any).employeeId ?? c.id));
 
       // Rank
       let rankedStrats: any[] = [];
       if (available.length > 0) {
-        rankedStrats = await rankCandidatesWithAI(roleName, available);
+        rankedStrats = await rankCandidatesWithAI(roleName, available, skills);
       }
 
       // Select Top N
       const newRecs = rankedStrats
         .slice(0, candidatesNeeded)
         .map((r) => {
-          const emp = available.find((e) => e.id === r.employeeId);
+          const emp = available.find((e) => ((e as any).employeeId ?? e.id) === r.employeeId);
           if (!emp) return null;
 
           const targetAlloc = allocationPercent || 100;
           const finalAlloc = Math.min(targetAlloc, emp.availabilityPercent);
 
           return {
-            employeeId: emp.id,
+            employeeId: (emp as any).employeeId ?? emp.id,
             employeeName: emp.name,
             currentRole: emp.role,
             confidence: r.confidence,
@@ -404,13 +545,18 @@ export async function generateAllocation(
     });
   }
 
-  return {
+  const proposal: AllocationProposal = {
     projectName: demand.projectName,
     projectId: demand.projectId,
     type: demand.projectType,
     generatedAt: new Date().toISOString(),
     roleAllocations,
   };
+
+  // Cache the result
+  setCachedAllocation(cacheKey, proposal);
+
+  return proposal;
 }
 
 // Helper to determine headcount dynamically
@@ -561,7 +707,7 @@ async function handleAddSingleRole(
       r.recommendations.map((re) => re.employeeId),
     ),
   );
-  const availableCandidates = candidates.filter((e) => !currentIds.has(e.id));
+  const availableCandidates = candidates.filter((e) => !currentIds.has((e as any).employeeId ?? e.id));
 
   if (availableCandidates.length === 0) {
     return {
@@ -593,13 +739,13 @@ async function handleAddSingleRole(
   // --- DELTA LOGIC END ---
 
   // 4. Rank
-  const ranked = await rankCandidatesWithAI(roleName, availableCandidates);
+  const ranked = await rankCandidatesWithAI(roleName, availableCandidates, resolvedSkills || []);
 
   // 5. Build Selection
   const topCandidates = ranked
     .slice(0, candidatesToAddCount)
     .map((r) => {
-      const emp = availableCandidates.find((e) => e.id === r.employeeId);
+      const emp = availableCandidates.find((e) => ((e as any).employeeId ?? e.id) === r.employeeId);
       if (!emp) {
         console.warn(
           `[WARN] Ranked employee ${r.employeeId} not found in availableCandidates`,
@@ -610,7 +756,7 @@ async function handleAddSingleRole(
       const finalAlloc = Math.min(100, emp.availabilityPercent);
 
       return {
-        employeeId: emp.id,
+        employeeId: (emp as any).employeeId ?? emp.id,
         employeeName: emp.name,
         currentRole: emp.role,
         confidence: r.confidence,
@@ -732,7 +878,7 @@ async function handleReplaceEmployee(
   // Ensure we don't suggest the person we just removed (if they are still in employees list)
   const availableCandidates = candidates.filter(
     (e) =>
-      !currentIds.has(e.id) &&
+      !currentIds.has((e as any).employeeId ?? e.id) &&
       (!targetName || !e.name.toLowerCase().includes(targetName.toLowerCase())),
   );
 
@@ -744,12 +890,12 @@ async function handleReplaceEmployee(
   }
 
   // Rank
-  const ranked = await rankCandidatesWithAI(roleToFill, availableCandidates);
+  const ranked = await rankCandidatesWithAI(roleToFill, availableCandidates, resolvedSkills || []);
 
   if (ranked.length > 0) {
     const top = ranked[0];
     const replacement = availableCandidates.find(
-      (e) => e.id === top.employeeId,
+      (e) => ((e as any).employeeId ?? e.id) === top.employeeId,
     );
 
     if (replacement) {
@@ -763,7 +909,7 @@ async function handleReplaceEmployee(
         const finalAlloc = Math.min(inherited, replacement.availabilityPercent);
 
         targetRole.recommendations.push({
-          employeeId: replacement.id,
+          employeeId: (replacement as any).employeeId ?? replacement.id,
           employeeName: replacement.name,
           currentRole: replacement.role,
           confidence: top.confidence,

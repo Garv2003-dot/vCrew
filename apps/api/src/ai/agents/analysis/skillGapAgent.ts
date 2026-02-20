@@ -1,6 +1,6 @@
 import { callGemini } from '../../clients/geminiClient';
 import type { AgentContext, AnalysisAgentResult, OnThinking } from '../types';
-import { buildFullContextString } from '../contextBuilder';
+import { buildAnalysisContext } from '../contextBuilder';
 
 /**
  * Skill gap analysis: compares demand skills vs allocated employees' skills.
@@ -15,7 +15,7 @@ export async function runSkillGapAgent(
     message: 'Analyzing skill gaps between demand and allocated team...',
   });
 
-  const fullContext = buildFullContextString(ctx);
+  const fullContext = buildAnalysisContext(ctx);
 
   const prompt = `You are a skills matching expert. Analyze the gap between required skills (from demand) and the skills of allocated/recommended employees.
 

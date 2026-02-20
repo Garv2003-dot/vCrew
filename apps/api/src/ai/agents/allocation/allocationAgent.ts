@@ -1,7 +1,6 @@
 import type { ProjectDemand, AllocationProposal } from '@repo/types';
 import { generateAllocation } from '../allocationAdvisor';
 import type { AgentContext, AllocationAgentResult, OnThinking } from '../types';
-import { buildFullContextString } from '../contextBuilder';
 
 /**
  * Generates allocation proposal from structured demand.

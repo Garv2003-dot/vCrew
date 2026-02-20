@@ -1,7 +1,7 @@
-'use client';
-import React, { useEffect, useState } from 'react';
-import { Card, Button } from '@repo/ui';
-import { ENDPOINTS } from '../../../config/endpoints';
+"use client";
+import React, { useEffect, useState } from "react";
+import { Card, Button } from "@repo/ui";
+import { ENDPOINTS } from "../../../config/endpoints";
 
 // --- MOCK SVG ICONS ---
 const StarIcon = () => <span className="text-blue-500 text-lg">★</span>;
@@ -26,7 +26,7 @@ const InfoRow = ({
 }) => (
   <div className="grid grid-cols-3 gap-2">
     <span className="font-semibold text-gray-700 col-span-1">{label}</span>
-    <span className="text-gray-600 col-span-2 break-words">{value || '—'}</span>
+    <span className="text-gray-600 col-span-2 break-words">{value || "—"}</span>
   </div>
 );
 
@@ -61,7 +61,7 @@ export default function ProfilePage() {
     fetch(ENDPOINTS.EMPLOYEES.ME)
       .then((res) => res.json())
       .then((emp: any) => {
-        if (!emp?.id) throw new Error('No employee data');
+        if (!emp?.id) throw new Error("No employee data");
         setProfileData({
           id: emp.id,
           name: emp.name,
@@ -74,23 +74,25 @@ export default function ProfilePage() {
           address: emp.address,
           state: emp.state,
           pincode: emp.pincode,
-          department: 'IT',
+          department: "IT",
           employeeId: emp.employeeId ?? emp.id,
-          about: emp.description || '',
-          workExperience: (emp.workExperience || []).map((e: any, i: number) => ({
-            id: i + 1,
-            company: e.companyName,
-            url: e.companyUrl,
-            title: e.jobTitle,
-            from: e.startDate?.slice(0, 7) || '',
-            to: e.endDate?.slice(0, 7) || 'Present',
-            cert: 'certificate.png',
-          })),
+          about: emp.description || "",
+          workExperience: (emp.workExperience || []).map(
+            (e: any, i: number) => ({
+              id: i + 1,
+              company: e.companyName,
+              url: e.companyUrl,
+              title: e.jobTitle,
+              from: e.startDate?.slice(0, 7) || "",
+              to: e.endDate?.slice(0, 7) || "Present",
+              cert: "certificate.png",
+            }),
+          ),
           techStack: (emp.skills || []).map((s: any) => s.name),
           projects: (emp.currentProjects || []).map((p: any) => ({
             id: p.projectId,
             name: p.projectName || p.roleName,
-            logo: p.projectLogo || '/logos/rhapsody-logo.png',
+            logo: p.projectLogo || "/logos/rhapsody-logo.png",
           })),
         });
       })
@@ -124,11 +126,11 @@ export default function ProfilePage() {
           <div className="flex justify-center w-full pt-2 pb-4">
             <div className="w-36 h-36 bg-gray-200 rounded-2xl overflow-hidden shadow-sm border-4 border-white">
               <img
-                src="https://i.pravatar.cc/150?img=47"
+                src="https://img.freepik.com/premium-photo/happy-man-ai-generated-portrait-user-profile_1119669-1.jpg?w=2000"
                 alt="Profile"
                 className="w-full h-full object-cover transition-transform hover:scale-105"
                 onError={(e) => {
-                  e.currentTarget.src = 'fallback-image-url.png';
+                  e.currentTarget.src = "fallback-image-url.png";
                 }}
               />
             </div>
@@ -166,7 +168,7 @@ export default function ProfilePage() {
         <main className="flex-1 space-y-6 py-4">
           <section>
             <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              {profileData.role || 'Full stack Dev'} : Team Pulse
+              {profileData.role || "Full stack Dev"} : Team Pulse
             </h1>
             <p className="text-gray-600 text-sm leading-relaxed max-w-4xl">
               {profileData.about}
@@ -287,7 +289,7 @@ export default function ProfilePage() {
                       alt={proj.name}
                       className="h-12 w-auto max-w-full object-contain transition-all duration-300"
                       onError={(e) => {
-                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.style.display = "none";
                         e.currentTarget.parentElement!.innerHTML = `<span class="text-gray-400 font-bold">${proj.name}</span>`;
                       }}
                     />

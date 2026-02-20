@@ -1,6 +1,6 @@
 import { callGemini } from '../../clients/geminiClient';
 import type { AgentContext, AnalysisAgentResult, OnThinking } from '../types';
-import { buildFullContextString } from '../contextBuilder';
+import { buildAnalysisContext } from '../contextBuilder';
 
 /**
  * QA analysis: identifies risks, bottlenecks, coverage gaps in the allocation.
@@ -15,7 +15,7 @@ export async function runQAAgent(
     message: 'Running QA analysis on allocation...',
   });
 
-  const fullContext = buildFullContextString(ctx);
+  const fullContext = buildAnalysisContext(ctx);
 
   const prompt = `You are a resource allocation QA expert. Analyze the current allocation for risks, bottlenecks, and coverage gaps.
 

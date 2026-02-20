@@ -2,7 +2,7 @@ import type { ProjectDemand } from '@repo/types';
 import { callGemini } from '../../clients/geminiClient';
 import { ensureDemandRoles } from '../../../utils/parseResourceDescription';
 import type { AgentContext, DemandAgentResult, OnThinking } from '../types';
-import { buildFullContextString } from '../contextBuilder';
+import { buildDecisionContext } from '../contextBuilder';
 
 /**
  * Parses free-text / conversational demand from chat messages.
@@ -18,7 +18,7 @@ export async function parseChatDemand(
     message: 'Analyzing conversational input to extract structured demand...',
   });
 
-  const fullContext = buildFullContextString(ctx);
+  const fullContext = buildDecisionContext(ctx);
 
   const prompt = `You are a resource allocation assistant. Extract a team structure from the user's free-text input.
 

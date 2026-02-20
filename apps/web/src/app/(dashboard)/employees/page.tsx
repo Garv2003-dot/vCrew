@@ -1,29 +1,43 @@
-'use client';
-import { Card } from '@repo/ui';
+"use client";
+import { Card } from "@repo/ui";
 import {
   MoreVertical,
   ChevronRight,
+  ChevronLeft,
   Search,
   ArrowUpRight,
   ArrowDownRight,
   Filter,
-} from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { ENDPOINTS } from '../../../config/endpoints';
+} from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { ENDPOINTS } from "../../../config/endpoints";
 
 const statusToDisplay: Record<string, { label: string; color: string }> = {
-  ALLOCATED: { label: 'Billable', color: 'bg-blue-400' },
-  PARTIAL: { label: 'Partially Allocated', color: 'bg-amber-400' },
-  BENCH: { label: 'Bench', color: 'bg-yellow-400' },
-  SHADOW: { label: 'Shadow', color: 'bg-gray-400' },
-  ON_LEAVE: { label: 'On Leave', color: 'bg-red-400' },
+  ALLOCATED: { label: "Billable", color: "bg-blue-400" },
+  PARTIAL: { label: "Partially Allocated", color: "bg-amber-400" },
+  BENCH: { label: "Bench", color: "bg-yellow-400" },
+  SHADOW: { label: "Shadow", color: "bg-gray-400" },
+  ON_LEAVE: { label: "On Leave", color: "bg-red-400" },
 };
+
+const ITEMS_PER_PAGE = 10;
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<
-    { id: string; name: string; status: string; role: string; age?: number }[]
+    {
+      id: string;
+      employeeId?: string;
+      name: string;
+      status: string;
+      role: string;
+      totalExpMonths?: number;
+      workExperience?: any[];
+      currentProjects?: any[];
+    }[]
   >([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     fetch(ENDPOINTS.EMPLOYEES.LIST)
@@ -33,10 +47,13 @@ export default function EmployeesPage() {
           Array.isArray(data)
             ? data.map((e) => ({
                 id: e.id,
+                employeeId: e.employeeId,
                 name: e.name,
                 status: e.status,
                 role: e.role,
-                age: e.age,
+                totalExpMonths: e.totalExpMonths,
+                workExperience: e.workExperience || [],
+                currentProjects: e.currentProjects || [],
               }))
             : [],
         );
@@ -44,6 +61,29 @@ export default function EmployeesPage() {
       .catch(() => setEmployees([]))
       .finally(() => setLoading(false));
   }, []);
+
+  // Filter employees based on search query
+  const filteredEmployees = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return employees;
+    }
+    const query = searchQuery.toLowerCase().trim();
+    return employees.filter((emp) => emp.name.toLowerCase().includes(query));
+  }, [employees, searchQuery]);
+
+  // Paginate filtered employees
+  const paginatedEmployees = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredEmployees.slice(startIndex, endIndex);
+  }, [filteredEmployees, currentPage]);
+
+  const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   return (
     <div className="min-h-screen bg-gray-50/50 p-6 flex gap-6 font-sans">
@@ -75,7 +115,7 @@ export default function EmployeesPage() {
               <div className="w-full bg-blue-50 h-2 rounded-full mt-2 overflow-hidden">
                 <div
                   className="bg-blue-600 h-2 rounded-full"
-                  style={{ width: '24%' }}
+                  style={{ width: "24%" }}
                 ></div>
               </div>
             </div>
@@ -98,7 +138,7 @@ export default function EmployeesPage() {
                 <div className="w-full bg-gray-100 h-1 rounded-full mt-2">
                   <div
                     className="bg-blue-400 h-1 rounded-full"
-                    style={{ width: '65%' }}
+                    style={{ width: "65%" }}
                   ></div>
                 </div>
               </div>
@@ -116,7 +156,7 @@ export default function EmployeesPage() {
                 <div className="w-full bg-gray-100 h-1 rounded-full mt-2">
                   <div
                     className="bg-red-300 h-1 rounded-full"
-                    style={{ width: '35%' }}
+                    style={{ width: "35%" }}
                   ></div>
                 </div>
               </div>
@@ -140,7 +180,7 @@ export default function EmployeesPage() {
                 <div className="w-full bg-gray-100 h-1 rounded-full mt-2">
                   <div
                     className="bg-green-400 h-1 rounded-full"
-                    style={{ width: '50%' }}
+                    style={{ width: "50%" }}
                   ></div>
                 </div>
               </div>
@@ -158,7 +198,7 @@ export default function EmployeesPage() {
                 <div className="w-full bg-gray-100 h-1 rounded-full mt-2">
                   <div
                     className="bg-yellow-400 h-1 rounded-full"
-                    style={{ width: '20%' }}
+                    style={{ width: "20%" }}
                   ></div>
                 </div>
               </div>
@@ -200,7 +240,9 @@ export default function EmployeesPage() {
           <div className="relative">
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Search by employee name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 w-64 shadow-sm transition-all"
             />
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -221,7 +263,7 @@ export default function EmployeesPage() {
                 Current Employee Listing
               </h2>
               <span className="px-2 py-0.5 rounded text-xs font-bold bg-white border border-gray-200 text-gray-600 shadow-sm">
-                {employees.length}
+                {filteredEmployees.length}
               </span>
             </div>
             <MoreVertical className="w-4 h-4 text-gray-400 cursor-pointer" />
@@ -229,22 +271,36 @@ export default function EmployeesPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-gray-100 text-[10px] uppercase text-gray-400 font-bold tracking-widest bg-white">
+                <th className="px-6 py-4 font-bold">Employee ID</th>
                 <th className="px-6 py-4 font-bold">Employee Name</th>
                 <th className="px-6 py-4 font-bold">Status</th>
-                <th className="px-6 py-4 font-bold">Category</th>
-                <th className="px-6 py-4 font-bold">Age</th>
-                <th className="px-6 py-4 font-bold">Last activity</th>
+                <th className="px-6 py-4 font-bold">Role</th>
+                <th className="px-6 py-4 font-bold">Experience (months)</th>
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-gray-50">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                  <td
+                    colSpan={5}
+                    className="px-6 py-12 text-center text-gray-500"
+                  >
                     Loading employees...
                   </td>
                 </tr>
+              ) : paginatedEmployees.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-6 py-12 text-center text-gray-500"
+                  >
+                    {searchQuery
+                      ? "No employees found matching your search."
+                      : "No employees found."}
+                  </td>
+                </tr>
               ) : (
-                employees.map((emp) => {
+                paginatedEmployees.map((emp) => {
                   const statusInfo =
                     statusToDisplay[emp.status] || statusToDisplay.BENCH;
                   return (
@@ -252,6 +308,9 @@ export default function EmployeesPage() {
                       key={emp.id}
                       className="group hover:bg-gray-50/60 transition-colors"
                     >
+                      <td className="px-6 py-4 text-gray-500 text-xs font-mono">
+                        {emp.employeeId || emp.id.slice(0, 8) + '...'}
+                      </td>
                       <td className="px-6 py-4 font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">
                         {emp.name}
                       </td>
@@ -271,10 +330,7 @@ export default function EmployeesPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-gray-500 text-xs font-medium">
-                        {emp.age ?? '—'}
-                      </td>
-                      <td className="px-6 py-4 text-gray-500 text-xs font-medium">
-                        —
+                        {emp.totalExpMonths ?? "—"}
                       </td>
                     </tr>
                   );
@@ -282,9 +338,38 @@ export default function EmployeesPage() {
               )}
             </tbody>
           </table>
-          <div className="px-6 py-3 border-t border-gray-50 bg-gray-50/50 flex items-center gap-1 text-xs text-gray-400 font-medium">
-            <span>Rows per page: 10</span>
-            <ChevronRight className="w-3 h-3" />
+          <div className="px-6 py-3 border-t border-gray-50 bg-gray-50/50 flex items-center justify-between text-xs text-gray-400 font-medium">
+            <div className="flex items-center gap-2">
+              <span>
+                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
+                {Math.min(
+                  currentPage * ITEMS_PER_PAGE,
+                  filteredEmployees.length,
+                )}{" "}
+                of {filteredEmployees.length} employees
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="p-1.5 rounded border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="px-3 py-1 text-gray-600">
+                Page {currentPage} of {totalPages || 1}
+              </span>
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                }
+                disabled={currentPage >= totalPages}
+                className="p-1.5 rounded border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -294,38 +379,38 @@ export default function EmployeesPage() {
 
 const NOTIFICATIONS = [
   {
-    initial: 'J',
-    name: 'James Robinson',
-    message: 'I need some maintenac...',
-    time: 'Jan 2, 12:31pm',
-    color: 'bg-teal-400',
+    initial: "J",
+    name: "James Robinson",
+    message: "I need some maintenac...",
+    time: "Jan 2, 12:31pm",
+    color: "bg-teal-400",
   },
   {
-    initial: 'E',
-    name: 'Eseosa Igbinobaro',
-    message: 'I got your email ad and ...',
-    time: 'Wed, 06:00pm',
-    color: 'bg-rose-700',
+    initial: "E",
+    name: "Eseosa Igbinobaro",
+    message: "I got your email ad and ...",
+    time: "Wed, 06:00pm",
+    color: "bg-rose-700",
   },
   {
-    initial: 'J',
-    name: 'James Robinson',
-    message: 'I need some maintenac...',
-    time: 'Jan 2, 12:31pm',
-    color: 'bg-teal-400',
+    initial: "J",
+    name: "James Robinson",
+    message: "I need some maintenac...",
+    time: "Jan 2, 12:31pm",
+    color: "bg-teal-400",
   },
   {
-    initial: 'L',
-    name: 'Lupita Jonah',
-    message: 'Thank you so much for ...',
-    time: 'Feb 13, 06:15pm',
-    color: 'bg-orange-400',
+    initial: "L",
+    name: "Lupita Jonah",
+    message: "Thank you so much for ...",
+    time: "Feb 13, 06:15pm",
+    color: "bg-orange-400",
   },
   {
-    initial: 'G',
-    name: 'Garrit James',
-    message: 'Application pending check...',
-    time: 'Mar 1, 10:00pm',
-    color: 'bg-orange-400',
+    initial: "G",
+    name: "Garrit James",
+    message: "Application pending check...",
+    time: "Mar 1, 10:00pm",
+    color: "bg-orange-400",
   },
 ];

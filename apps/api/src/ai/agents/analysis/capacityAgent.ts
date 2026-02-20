@@ -1,6 +1,6 @@
 import { callGemini } from '../../clients/geminiClient';
 import type { AgentContext, AnalysisAgentResult, OnThinking } from '../types';
-import { buildFullContextString } from '../contextBuilder';
+import { buildAnalysisContext } from '../contextBuilder';
 
 /**
  * Capacity analysis: checks availability, overallocation, bench capacity.
@@ -15,7 +15,7 @@ export async function runCapacityAgent(
     message: 'Analyzing capacity and availability...',
   });
 
-  const fullContext = buildFullContextString(ctx);
+  const fullContext = buildAnalysisContext(ctx);
 
   const prompt = `You are a capacity planning expert. Analyze:
 1. Current allocation vs employee availability (any overallocation?)
