@@ -1,4 +1,5 @@
 'use client';
+import { dummyUsers } from "../../../api/src/data/mockLoginData"
 import {
   createContext,
   useContext,
@@ -9,14 +10,15 @@ import {
 import { useRouter } from 'next/navigation';
 
 interface User {
-  id: string;
+  id: Number;
   name: string;
   email: string;
+  password?: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string) => Promise<void>;
+  login: (email: string,password:string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -37,21 +39,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string) => {
+  const login = async (email: string,password: string) => {
     setIsLoading(true);
     // Mock API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
+     
+    const user = dummyUsers.find(
+      (u)=> u.email ===  email && u.password=== password
+    );
 
-    const mockUser = {
-      id: '1',
-      name: 'Admin User',
-      email: email,
-    };
 
-    setUser(mockUser);
-    localStorage.setItem('user', JSON.stringify(mockUser));
+
+    if(!user){
+      setUser(null)
+      setIsLoading(false)
+      alert("No user found! Please try again!")
+      router.push('/login');
+    
+    }
+
+    else{
+    setUser(user);
+    localStorage.setItem('user', JSON.stringify(user));
     setIsLoading(false);
     router.push('/profile');
+    
+    }
+
   };
 
   const logout = () => {
