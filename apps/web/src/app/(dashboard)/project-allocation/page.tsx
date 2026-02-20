@@ -27,6 +27,7 @@ export default function ProjectAllocationPage() {
   const [proposal, setProposal] = useState<AllocationProposal | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAgentThinking, setIsAgentThinking] = useState(false);
+  const [thinkingSteps, setThinkingSteps] = useState<{ agent: string; step: string; message: string }[]>([]);
   const [lastDemand, setLastDemand] = useState<Partial<ProjectDemand>>({});
   const [agentMemory, setAgentMemory] = useState<AgentMemoryEntry[]>([]);
 
@@ -48,11 +49,18 @@ export default function ProjectAllocationPage() {
         body: JSON.stringify(demand),
       });
       const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || `Request failed: ${res.status}`);
+      }
       setProposal(data);
       setAllocationStage('RESULTS');
       setAllocationSource('FORM');
     } catch (e) {
       console.error('Failed to generate allocation', e);
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: `Error: ${e instanceof Error ? e.message : 'Failed to generate allocation'}` },
+      ]);
     } finally {
       setIsGenerating(false);
     }
@@ -82,15 +90,18 @@ export default function ProjectAllocationPage() {
   const handleChatInstruction = async (message: string) => {
     setMessages((prev) => [...prev, { role: 'user', content: message }]);
     setIsAgentThinking(true);
+    setThinkingSteps([]);
 
     try {
-      const res = await fetch(ENDPOINTS.ALLOCATION.INSTRUCTION, {
+      let useStream = true;
+      let res = await fetch(ENDPOINTS.ALLOCATION.AGENTIC_STREAM, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message,
           currentProposal: proposal,
           demand: lastDemand,
+          loadingDemand: null,
           conversation: messages.map((m) => ({
             role: m.role,
             content: m.content,
@@ -98,34 +109,106 @@ export default function ProjectAllocationPage() {
         }),
       });
 
+      if (!res.ok || !res.body) {
+        useStream = false;
+        res = await fetch(ENDPOINTS.ALLOCATION.AGENTIC, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message,
+            currentProposal: proposal,
+            demand: lastDemand,
+            loadingDemand: null,
+            conversation: messages.map((m) => ({ role: m.role, content: m.content })),
+          }),
+        });
+      }
+
       if (!res.ok) {
         throw new Error('Agent failed to process request');
       }
 
-      const data = await res.json();
+      if (!useStream || !res.body) {
+        const data = await res.json();
+        setThinkingSteps(data.thinkingSteps || []);
+        setProposal(data.proposal ?? null);
+        setAllocationStage('RESULTS');
+        setAllocationSource('AI');
+        setMessages((prev) => [...prev, { role: 'assistant', content: data.message || "I've processed your request." }]);
+        if (proposal && data.proposal) {
+          setAgentMemory((prev) => [...prev, {
+            id: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
+            userMessage: message,
+            intent: { intentType: 'UNKNOWN' },
+            changeSummary: data.message || '',
+            beforeProposal: proposal,
+            afterProposal: data.proposal,
+          }]);
+        }
+        return;
+      }
 
-      setProposal(data.proposal);
-      setAllocationStage('RESULTS');
-      setAllocationSource('AI');
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let finalResult: { proposal?: AllocationProposal; message?: string } | null = null;
 
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: data.message },
-      ]);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split('\n\n');
+        buffer = events.pop() || '';
 
-      if (proposal) {
-        const memoryEntry: AgentMemoryEntry = {
-          id: crypto.randomUUID(),
-          timestamp: new Date().toISOString(),
-          userMessage: message,
-          intent: {
-            intentType: 'UNKNOWN',
-          },
-          changeSummary: data.message,
-          beforeProposal: proposal,
-          afterProposal: data.proposal,
-        };
-        setAgentMemory((prev) => [...prev, memoryEntry]);
+        for (const block of events) {
+          let eventType = '';
+          let dataStr = '';
+          for (const line of block.split('\n')) {
+            if (line.startsWith('event: ')) eventType = line.slice(7).trim();
+            else if (line.startsWith('data: ')) dataStr = line.slice(6);
+          }
+          if (!dataStr) continue;
+          try {
+            const data = JSON.parse(dataStr);
+            if (eventType === 'thinking') {
+              setThinkingSteps((prev) => [
+                ...prev,
+                { agent: data.agent || 'agent', step: data.step || '', message: data.message || '' },
+              ]);
+            } else if (eventType === 'result') {
+              finalResult = data;
+            } else if (eventType === 'error') {
+              throw new Error(data.error || 'Unknown error');
+            }
+          } catch (e) {
+            if (e instanceof SyntaxError) continue;
+            throw e;
+          }
+        }
+      }
+
+      if (finalResult) {
+        setProposal(finalResult.proposal ?? null);
+        setAllocationStage('RESULTS');
+        setAllocationSource('AI');
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: finalResult!.message || "I've processed your request." },
+        ]);
+
+        if (proposal && finalResult.proposal) {
+          const memoryEntry: AgentMemoryEntry = {
+            id: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
+            userMessage: message,
+            intent: { intentType: 'UNKNOWN' },
+            changeSummary: finalResult.message || '',
+            beforeProposal: proposal,
+            afterProposal: finalResult.proposal,
+          };
+          setAgentMemory((prev) => [...prev, memoryEntry]);
+        }
       }
     } catch (e) {
       console.error('Agent Error:', e);
@@ -138,6 +221,7 @@ export default function ProjectAllocationPage() {
       ]);
     } finally {
       setIsAgentThinking(false);
+      setThinkingSteps([]);
     }
   };
 
@@ -286,6 +370,7 @@ export default function ProjectAllocationPage() {
             messages={messages}
             onSendMessage={handleChatInstruction}
             isThinking={isAgentThinking}
+            thinkingSteps={thinkingSteps}
             className="h-full"
           />
         </div>

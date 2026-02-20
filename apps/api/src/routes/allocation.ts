@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { ProjectDemand, LoadingDemand, LoadingRow } from '@repo/types';
 import { generateAllocation, processAgentInstruction } from '../ai';
+import { runMainOrchestrator } from '../ai/agents/mainOrchestrator';
 import { fetchEmployeesFromSupabase } from '../services/employeesService';
 import { fetchProjectsFromSupabase } from '../services/projectsService';
 import { ensureDemandRoles } from '../utils/parseResourceDescription';
@@ -46,20 +47,49 @@ function loadingToProjectDemand(loading: LoadingDemand): ProjectDemand {
 }
 
 allocationRoutes.post('/demand', async (req, res) => {
+  console.log('[API] /demand hit');
   try {
     const demand: ProjectDemand = req.body;
-    const normalizedDemand = ensureDemandRoles(demand);
-    const { employees, projects } = await getAllocationData();
+    let normalizedDemand = ensureDemandRoles(demand);
 
+    console.log('[API] /demand: fetching employees, projects...');
+    const { employees, projects } = await getAllocationData();
+    console.log('[API] /demand: got', employees?.length, 'employees,', projects?.length, 'projects');
+
+    // When form has only context/resourceDescription (no explicit roles), parse via AI
+    if (!normalizedDemand.roles?.length && (normalizedDemand.context || normalizedDemand.resourceDescription)) {
+      console.log('[API] /demand: no roles, parsing context via chatDemandAgent');
+      const { parseChatDemand } = await import('../ai/agents/demand/chatDemandAgent');
+      const ctx = {
+        employees,
+        projects,
+        currentProposal: null,
+        demand: normalizedDemand,
+        loadingDemand: null,
+        conversation: [],
+        userInput: normalizedDemand.context || normalizedDemand.resourceDescription || '',
+      };
+      const result = await parseChatDemand(ctx);
+      normalizedDemand = result.demand;
+    }
+
+    if (!normalizedDemand.roles?.length) {
+      return res.status(400).json({
+        error: 'No roles in demand. Add roles in the form or provide a resource description (e.g. "2 Backend, 1 PM, 2 QA").',
+      });
+    }
+
+    console.log('[API] /demand: calling generateAllocation for', normalizedDemand.roles.length, 'roles...');
     const proposal = await generateAllocation(
       normalizedDemand,
       employees,
       projects,
     );
 
+    console.log('[API] /demand: done, returning proposal');
     res.json(proposal);
   } catch (err) {
-    console.error(err);
+    console.error('[API] /demand error:', err);
     res.status(500).json({
       error: `Failed to generate allocation: ${err instanceof Error ? err.message : String(err)}`,
     });
@@ -83,6 +113,7 @@ allocationRoutes.post('/loading-demand', async (req, res) => {
 });
 
 allocationRoutes.post('/instruction', async (req, res) => {
+  console.log('[API] /instruction hit');
   try {
     const { message, currentProposal, demand, conversation } = req.body;
 
@@ -110,5 +141,105 @@ allocationRoutes.post('/instruction', async (req, res) => {
     res.status(500).json({
       error: err.message || 'Failed to process instruction',
     });
+  }
+});
+
+/** Agentic endpoint: full orchestration with thinking steps, handles all input types */
+allocationRoutes.post('/agentic', async (req, res) => {
+  console.log('[API] /agentic hit');
+  try {
+    const {
+      message,
+      demand,
+      loadingDemand,
+      currentProposal,
+      conversation = [],
+    } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: 'Missing message' });
+    }
+
+    console.log('[API] Fetching employees and projects...');
+    const { employees, projects } = await getAllocationData();
+    console.log('[API] Got', employees?.length ?? 0, 'employees,', projects?.length ?? 0, 'projects');
+
+    const result = await runMainOrchestrator(
+      {
+        userInput: message,
+        demand: demand || null,
+        loadingDemand: loadingDemand || null,
+        currentProposal: currentProposal || null,
+        conversation,
+        employees,
+        projects,
+      },
+      (step) => {
+        console.log(`[Agent] ${step.agent}: ${step.message}`);
+      }
+    );
+
+    res.json(result);
+  } catch (err: any) {
+    console.error('Agentic orchestration failed', err);
+    res.status(500).json({
+      error: err?.message || 'Failed to process agentic request',
+    });
+  }
+});
+
+/** Agentic stream: SSE for real-time thinking steps */
+allocationRoutes.post('/agentic/stream', async (req, res) => {
+  console.log('[API] /agentic/stream hit');
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  const send = (event: string, data: unknown) => {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    if (typeof (res as any).flush === 'function') (res as any).flush();
+  };
+
+  try {
+    const {
+      message,
+      demand,
+      loadingDemand,
+      currentProposal,
+      conversation = [],
+    } = req.body;
+
+    if (!message) {
+      send('error', { error: 'Missing message' });
+      res.end();
+      return;
+    }
+
+    console.log('[API] Fetching employees and projects (stream)...');
+    const { employees, projects } = await getAllocationData();
+    console.log('[API] Got', employees?.length ?? 0, 'employees,', projects?.length ?? 0, 'projects');
+
+    const result = await runMainOrchestrator(
+      {
+        userInput: message,
+        demand: demand || null,
+        loadingDemand: loadingDemand || null,
+        currentProposal: currentProposal || null,
+        conversation,
+        employees,
+        projects,
+      },
+      (step) => {
+        send('thinking', { agent: step.agent, step: step.step, message: step.message });
+      }
+    );
+
+    send('result', result);
+  } catch (err: any) {
+    send('error', { error: err?.message || 'Agentic orchestration failed' });
+  } finally {
+    res.end();
   }
 });

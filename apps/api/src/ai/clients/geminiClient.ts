@@ -4,16 +4,8 @@ import { GoogleGenAI } from '@google/genai';
 if (typeof process !== 'undefined' && !process.env.GEMINI_API_KEY) {
   try {
     require('dotenv').config();
-  } catch {
-    // dotenv optional
-  }
+  } catch {}
 }
-
-/**
- * Sends a prompt to Gemini and returns the generated text.
- * Same contract as the previous callOllama: (prompt: string) => Promise<string>
- * so existing JSON parsing and validation continue to work unchanged.
- */
 export async function callGemini(prompt: string): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -40,7 +32,6 @@ export async function callGemini(prompt: string): Promise<string> {
       return text;
     } catch (e: any) {
       lastError = e;
-      // Check for Service Unavailable (503) or Resource Exhausted (429)
       const status = e.status || e.code || (e.response && e.response.status);
       if ((status === 503 || status === 429) && i < 2) {
         console.warn(`Gemini API error ${status}, retrying (${i + 1}/3)...`);

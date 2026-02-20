@@ -7,23 +7,34 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface ThinkingStep {
+  agent: string;
+  step: string;
+  message: string;
+  timestamp?: string;
+}
+
 interface AIAssistantPanelProps {
   messages: ChatMessage[];
   onSendMessage: (message: string) => void;
   isThinking: boolean;
+  thinkingSteps?: ThinkingStep[];
   className?: string;
 }
 
 const SUGGESTION_CHIPS = [
+  'Create an app for Android/iOS for an airline company - frontend heavy, need backend and QA, project manager',
+  'I need 2 backend devs and 1 PM',
   'Summarize the allocation',
   'Identify potential bottlenecks',
-  'Suggest role adjustments',
+  'Analyze skill gaps',
 ];
 
 export default function AIAssistantPanel({
   messages,
   onSendMessage,
   isThinking,
+  thinkingSteps = [],
   className = '',
 }: AIAssistantPanelProps) {
   const [inputValue, setInputValue] = useState('');
@@ -116,33 +127,51 @@ export default function AIAssistantPanel({
           )}
 
         {isThinking && (
-          <div className="flex gap-2.5 items-start">
-            <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-              <svg
-                className="w-4 h-4 text-blue-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 00.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M19 14.5l-2.47 2.47a2.25 2.25 0 01-1.59.659H9.06a2.25 2.25 0 01-1.591-.659L5 14.5m14 0V9a2.25 2.25 0 00-2.25-2.25H7.25A2.25 2.25 0 005 9v5.5"
-                />
-              </svg>
-            </div>
-            <div className="flex items-center gap-1.5 py-2">
-              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" />
-              <div
-                className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"
-                style={{ animationDelay: '0.15s' }}
-              />
-              <div
-                className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"
-                style={{ animationDelay: '0.3s' }}
-              />
-            </div>
+          <div className="space-y-2">
+            {thinkingSteps.length > 0 ? (
+              <div className="space-y-1.5">
+                {thinkingSteps.map((s, i) => (
+                  <div
+                    key={i}
+                    className="flex gap-2 items-start text-xs text-amber-800 bg-amber-50/80 rounded-lg px-3 py-2 border border-amber-100"
+                  >
+                    <span className="font-mono font-medium text-amber-600 shrink-0">
+                      {s.agent}
+                    </span>
+                    <span className="text-amber-700">{s.message}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex gap-2.5 items-start">
+                <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                  <svg
+                    className="w-4 h-4 text-blue-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 00.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M19 14.5l-2.47 2.47a2.25 2.25 0 01-1.59.659H9.06a2.25 2.25 0 01-1.591-.659L5 14.5m14 0V9a2.25 2.25 0 00-2.25-2.25H7.25A2.25 2.25 0 005 9v5.5"
+                    />
+                  </svg>
+                </div>
+                <div className="flex items-center gap-1.5 py-2">
+                  <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" />
+                  <div
+                    className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"
+                    style={{ animationDelay: '0.15s' }}
+                  />
+                  <div
+                    className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"
+                    style={{ animationDelay: '0.3s' }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
         <div ref={messagesEndRef} />
