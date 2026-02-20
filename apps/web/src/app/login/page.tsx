@@ -1,9 +1,8 @@
 'use client';
-
 import React, { useState } from 'react';
 import { Card, Button, Input } from '@repo/ui';
 import { useAuth } from '../../context/auth-context';
-
+import Image from '../../../../../node_modules/next/image';
 export default function LoginPage() {
   const { login, isLoading } = useAuth();
   const [email, setEmail] = useState('');
@@ -11,59 +10,102 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await login(email,password);
-    setEmail("");
-    setPassword("");
+    // ✅ pass both email and password (you were only passing email earlier)
+    await login(email, password);
+    setEmail("")
+    setPassword("")
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center mb-6">
-          <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-2xl">
-            E
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-5">
+      {/* LEFT PANEL */}
+      <aside className="relative col-span-2 flex items-center justify-center overflow-hidden bg-gradient-to-b from-slate-100 to-white">
+        {/* Small 'V' triangle logo (top-left) */}
+       {/* Brand logo image (top-left) */}
+<div className="absolute left-4 top-4">
+  <Image
+    src="/logos/vCrew-Logo.png"
+    alt="vCrew logo"
+    width={60}              k
+    height={60}
+    priority                 
+    className="select-none"
+  />
+</div>
+
+        {/* wordmark vCrew */}
+        
+{/* wordmark image (replaces text vCrew) */}
+<div className="flex flex-col items-center lg:items-start px-8 box-shadow:none">
+  <Image
+    src="/vCrew-title.png"
+    alt="vCrew wordmark"
+    width={256}        // adjust to your asset proportions
+    height={72}        // keep aspect ratio consistent with your file
+    priority           // optional: improves LCP for above-the-fold
+    className="select-none"
+  />
+</div>
+
+
+        {/* Subtle vignette on the far left to mimic the mock’s depth */}
+        {/* <div className="pointer-events-none absolute inset-y-0 left-0 w-2 bg-gradient-to-r from-slate-200/60 to-transparent" /> */}
+      </aside>
+
+      {/* RIGHT PANEL */}
+      <main className="relative col-span-3 flex items-center justify-center bg-[#0C3671]">
+        {/* Two vertical stripes near the center seam */}
+        
+<div aria-hidden className="absolute left-0 top-0 h-full w-12 bg-[#2E63C7]" />
+  <div aria-hidden className="absolute left-8 top-0 h-full w-8  bg-[#1D4FA3]" />
+
+
+        {/* Content container */}
+        <div className="relative w-full max-w-md px-6">
+          {/* Headings */}
+          <div className="mb-6">
+            <h2 className="text-white text-2xl font-semibold">Welcome !</h2>
+            <p className="text-slate-200 text-sm mt-1">
+              Sign in to access your vCrew dashboard
+            </p>
           </div>
-        </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Sign in to your account
-        </h2>
-      </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <Card className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div>
-              <Input
-                label="Email address"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
+          {/* Form card */}
+          <Card className="bg-white/95 backdrop-blur-sm rounded-lg shadow p-6">
+            <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+              <div>
+                <Input
+                  label="Email/Username *"
+                  placeholder="Enter email/username"
+                  type="text"
+                  required
+                  value={email}
+                  onChange={(e: any) => setEmail(e.target.value)}
+                />
+              </div>
 
-            <div>
-              <Input
-                label="Password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+              <div>
+                <Input
+                  label="Password *"
+                  placeholder="Enter password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e: any) => setPassword(e.target.value)}
+                />
+              </div>
 
-            <div>
               <Button
                 type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 isLoading={isLoading}
+                className="w-full bg-[#2E63C7] hover:bg-[#2A5BB6] text-white font-medium rounded-md"
               >
                 Sign in
               </Button>
-            </div>
-          </form>
-        </Card>
-      </div>
+            </form>
+          </Card>
+        </div>
+      </main>
     </div>
   );
 }
